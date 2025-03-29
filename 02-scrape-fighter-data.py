@@ -1,12 +1,13 @@
 import pandas as pd
 import requests
+import sys
 
 from bs4 import BeautifulSoup
 
 columns = ['name', 'height', 'weight', 'reach', 'stance', 'wins', 'losses', 'draws']
 
 # scrape individual fighter stats for every ufc fighter
-def main():
+def main(out_dir):
     data = []
 
     # loop through every ufc fighter page alphabetically
@@ -34,7 +35,7 @@ def main():
             data.append([name, ht, wt, reach, stance, wins, losses, draws])
 
     df = pd.DataFrame(data, columns=columns)
-    df.to_csv('fighter_data.csv')
+    df.to_csv(out_dir)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])

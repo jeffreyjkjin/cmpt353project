@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import sys
 
 from bs4 import BeautifulSoup
 
@@ -215,7 +216,7 @@ def scrapeCard(URL):
 
     return card_data
 
-def main():
+def main(out_dir):
     # scrape link and date for every ufc event card
     # URL = 'http://ufcstats.com/statistics/events/completed' # last ~24 cards
     URL = 'http://ufcstats.com/statistics/events/completed?page=all' # every card
@@ -233,7 +234,7 @@ def main():
         data.extend(scrapeCard(card_link))
 
     df = pd.DataFrame(data, columns=columns)
-    df.to_csv('fight_data.csv')
+    df.to_csv(out_dir)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])
