@@ -34,8 +34,10 @@ def main(out_dir):
 
             data.append([name, ht, wt, reach, stance, wins, losses, draws])
 
+            print(data[-1])
+
     df = pd.DataFrame(data, columns=columns)
-    df.to_csv(out_dir)
+    df.to_csv(out_dir, index=False)
 
 if __name__ == '__main__':
     main(sys.argv[1])

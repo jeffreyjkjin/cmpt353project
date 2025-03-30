@@ -104,6 +104,14 @@ def scrapeFight(URL, date):
     data.extend([red_name, blue_name, red_result, blue_result, method, rounds, time, format])
 
     sections = soup.find_all('section', class_='b-fight-details__section js-fight-section')
+
+    # if fight stats are unavailable
+    if (len(sections) < 4): 
+        data.extend([None for _ in range(0, 220)])
+        print(data)
+
+        return data
+
     totals = sections[2].find_all('tr', class_='b-fight-details__table-row')[1:]
     strikes = sections[4].find_all('tr', class_='b-fight-details__table-row')[1:]
     # totals should be same size as strikes
@@ -197,6 +205,8 @@ def scrapeFight(URL, date):
     # pad data with dummy values if fight is not 5 rounds
     while (len(data) < 229): data.extend(padding)
 
+    print(data)
+
     return data
 
 # scrapes every fight from the provided URL of a UFC card
@@ -234,7 +244,7 @@ def main(out_dir):
         data.extend(scrapeCard(card_link))
 
     df = pd.DataFrame(data, columns=columns)
-    df.to_csv(out_dir)
+    df.to_csv(out_dir, index=False)
 
 if __name__ == '__main__':
     main(sys.argv[1])
