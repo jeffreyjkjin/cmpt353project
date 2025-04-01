@@ -23,7 +23,7 @@ def main(out_dir):
             stats = fighter.find_all('td', class_='b-statistics__table-col')
             
             # get stats
-            name = f'{stats[0].text.strip()} {stats[1].text.strip()}'
+            name = f'{stats[0].text.strip()} {stats[1].text.strip()}'.strip()
             ht = stats[3].text.strip()
             wt = stats[4].text.strip()
             reach = stats[5].text.strip()
