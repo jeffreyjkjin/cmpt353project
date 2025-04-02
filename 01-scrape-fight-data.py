@@ -214,15 +214,20 @@ def scrapeCard(URL):
     page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
 
+    # get url for each fight
     fight_table = soup.find('tbody')
-    fights = fight_table.find_all('a', class_='b-flag b-flag_style_green')
+    fights = fight_table.find_all('td', class_='b-fight-details__table-col b-fight-details__table-col_style_align-top')
 
+    # get fight date
     details = soup.find('li', class_='b-list__box-list-item')
     date = details.text.strip()[5:].lstrip()
 
     card_data = []
     for fight in fights:
-        card_data.append(scrapeFight(fight['href'], date))
+        # get first url only if fight is a draw or no contest
+        fight_link = fight.find('a')['href']
+
+        card_data.append(scrapeFight(fight_link, date))
 
     return card_data
 
