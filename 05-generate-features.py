@@ -76,11 +76,40 @@ def calculateGlicko(r, rd, opp_r, opp_rd, v, result):
 
     return new_r, new_rd, sigma_p
 
+
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = pd.read_csv(in_dir1)
     fighters = pd.read_csv(in_dir2)
 
-    # TODO: calculate averages for fight stats
+    # Calculate Career fight data averages for fighters
+    red_columns = [col for col in fight_data.columns if "red" in col]
+    blue_columns = [col for col in fight_data.columns if "blue" in col]
+    red_df = fight_data[red_columns].copy()
+    red_df = red_df.drop('red_result', axis=1)
+    blue_df = fight_data[blue_columns].copy()
+    
+    red_df.columns = ['Fighter', 'avg_kd', 'avg_tot_str_lnd', 'avg_tot_str_att', 'avg_td_lnd', 'avg_td_att', 
+                    'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd', 'avg_sig_str_att', 
+                    'avg_head_sig_str_lnd', 'avg_head_sig_str_att', 'avg_body_sig_str_lnd', 
+                    'avg_body_sig_str_att', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att', 
+                    'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
+                    'avg_clch_sig_str_att', 'avg_gnd_sig_str_lnd', 'avg_gnd_sig_str_att', 
+                    'tot_str_per', 'td_per', 'sig_str_per', 'head_sig_str_per', 'body_sig_str_per', 
+                    'leg_sig_str_per', 'dist_sig_str_per', 'clch_sig_str_per', 'gnd_sig_str_per']
+    
+    blue_df.columns = ['Fighter', 'avg_kd', 'avg_tot_str_lnd', 'avg_tot_str_att', 'avg_td_lnd', 'avg_td_att', 
+                    'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd', 'avg_sig_str_att', 
+                    'avg_head_sig_str_lnd', 'avg_head_sig_str_att', 'avg_body_sig_str_lnd', 
+                    'avg_body_sig_str_att', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att', 
+                    'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
+                    'avg_clch_sig_str_att', 'avg_gnd_sig_str_lnd', 'avg_gnd_sig_str_att', 
+                    'tot_str_per', 'td_per', 'sig_str_per', 'head_sig_str_per', 'body_sig_str_per', 
+                    'leg_sig_str_per', 'dist_sig_str_per', 'clch_sig_str_per', 'gnd_sig_str_per']
+    
+    career_fighter_stats_df = pd.concat([red_df, blue_df], ignore_index=True)
+    career_fighter_stats_df = career_fighter_stats_df.groupby('Fighter').mean().reset_index()
+
+
     # TODO: create heuristic to determine whether a fighter is a grappler or striker
 
     # set default glicko values
