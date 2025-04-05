@@ -32,59 +32,14 @@ def standardize_format(fight_format):
     # Return original if no match is found
     return fight_format
 
-def standardize_outcomes(outcome):
-    if (outcome == 'KO/TKO'):
-        return 0
-    elif (outcome == 'Submission'):
-        return 1
-    elif (outcome == 'Decision - Unanimous'):
-        return 2
-    elif (outcome == 'Decision - Split'):
-        return 3
-    elif (outcome == "TKO - Doctor's Stoppage"):
-        return 4
-    elif (outcome == 'Decision - Majority'):
-        return 5
-    elif (outcome == 'DQ'):
-        return 6
-    elif (outcome == 'Other'):
-        return 7
-
 def standardize_result(result):
     if (result == 'W'):
-        return 0
-    elif (result == 'L'):
         return 1
+    elif (result == 'L'):
+        return 0
     elif (result == 'D'):
-        return 2
+        return 0.5
 
-def calculate_max_time(fight_format):
-    match = re.match(r'(\d+) Rnd \+ (\d+)OT \((.*)\)', fight_format)
-    if match:
-        # Extract number of rounds and overtime rounds
-        rounds = int(match.group(1))
-        overtime = int(match.group(2))
-        
-        # Extract time values
-        time_str = match.group(3)
-        time_values = list(map(int, time_str.split('-')))
-        
-        # Calculate the time for the rounds
-        total_regular_time = rounds * time_values[0]
-        
-        # Calculate the time for overtime (use last time value for OT)
-        total_overtime_time = overtime * time_values[-1]
-        
-        # Total maximum time
-        total_time = total_regular_time + total_overtime_time
-        return total_time
-    
-    # Longest No Time Limit fight was below 10 mintes, Set to 10 for Simplicity
-    if 'No Time Limit' in fight_format:
-        return 10
-    
-    # Return 0 if no valid format
-    return 0  
 
 def calculate_fight_time(row):
     # Extract round information from the format
@@ -144,15 +99,35 @@ def main(in_dir, out_dir):
     # Fill empty entries with 0s
     df = df.fillna(0)
 
-    df['format'] = df['format'].apply(standardize_format)
+    df['date'] = pd.to_datetime(df['date'], format='%d-%b-%y')
+    df = df.sort_values(by='date')
 
-    df['outcome'] = df['outcome'].apply(standardize_outcomes)
+    df['format'] = df['format'].apply(standardize_format)
 
     df['red_result'] = df['red_result'].apply(standardize_result)
 
-    df['max_time'] = df['format'].apply(calculate_max_time)
-
     df['total_fight_time'] = df.apply(calculate_fight_time, axis=1)
+
+    # Rename one of the Bruno Silvas to Bruno Bulldog Silva by manually finding Bulldog's Fights
+    dates_to_check = pd.to_datetime([
+        '2024-12-14',
+        '2024-07-20',
+        '2023-03-11',
+        '2021-05-22',
+        '2021-03-20',
+        '2020-10-10',
+        '2020-03-14',
+        '2019-10-05'
+    ])
+
+    df_filtered = df[df['date'].isin(dates_to_check)]
+
+    df.loc[df_filtered.index, 'red'] = df_filtered['red'].replace('Bruno Silva', 'Bruno Bulldog Silva')
+    df.loc[df_filtered.index, 'blue'] = df_filtered['blue'].replace('Bruno Silva', 'Bruno Bulldog Silva')
+    df.update(df_filtered)
+
+    columns_to_keep = [col for col in df.columns if col not in ['outcome', 'time', 'round', 'format', 'blue_result']]
+    df = df[columns_to_keep]
 
     df.to_csv(out_dir, index=False)
 
