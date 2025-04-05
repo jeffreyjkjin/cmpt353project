@@ -2,9 +2,40 @@ import math
 import pandas as pd
 import sys
 
-# calculates new glicko rating of a fighter
+totals_columns = ['kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_att', 'rev', 'ctrl', 
+                  'sig_str_lnd', 'sig_str_att', 'head_sig_str_lnd', 'head_sig_str_att', 
+                  'body_sig_str_lnd', 'body_sig_str_att', 'leg_sig_str_lnd', 'leg_sig_str_att', 
+                  'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'clch_sig_str_att', 
+                  'gnd_sig_str_lnd', 'gnd_sig_str_att']
+
+percents_columns = ['tot_str', 'td', 'sig_str', 'head_sig_str', 'body_sig_str', 'leg_sig_str',
+                    'dist_sig_str', 'clch_sig_str', 'gnd_sig_str']
+
+averages_columns = ['kd', 'tot_str_lnd', 'td_lnd', 'sub_att', 'rev', 'ctrl', 'sig_str_lnd', 
+                    'head_sig_str_lnd', 'body_sig_str_lnd', 'leg_sig_str_lnd', 'leg_sig_str_att',
+                    'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'gnd_sig_str_lnd',]
+
+career_columns = ['name', 'tot_str_pct', 'td_pct', 'sig_str_pct', 'head_sig_str_pct', 
+                  'body_sig_str_pct', 'leg_sig_str_pct', 'dist_sig_str_pct', 'clch_sig_str_pct', 
+                  'gnd_sig_str_pct', 'avg_kd', 'avg_tot_str_lnd', 'avg_td_lnd', 'avg_sub_att', 
+                  'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd','avg_head_sig_str_lnd', 
+                  'avg_body_sig_str_lnd', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att',
+                  'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
+                  'avg_gnd_sig_str_lnd']
+
 # adapted from https://www.glicko.net/glicko/glicko2.pdf
-def calculateGlicko(r, rd, opp_r, opp_rd, v, result):
+# assumes every fight changes rating; does not have concept of rating period
+def updateGlicko(r, rd, opp_r, opp_rd, v, result):
+    # set default values for fighters if it is their first fight
+    if (r == 0):
+        r = 1500
+        rd = 350
+        v = 0.06
+
+    if (opp_r == 0):
+        opp_r = 1500
+        opp_rd = 350
+
     tau = 0.5 # volatility contraint constant
 
     # step 2: convert fighter stats to glicko2 scale
@@ -76,49 +107,13 @@ def calculateGlicko(r, rd, opp_r, opp_rd, v, result):
 
     return new_r, new_rd, sigma_p
 
-
-def main(in_dir1, in_dir2, out_dir1, out_dir2):
-    fight_data = pd.read_csv(in_dir1)
-    fighters = pd.read_csv(in_dir2)
-
-    # Calculate Career fight data averages for fighters
-    red_columns = [col for col in fight_data.columns if "red" in col]
-    blue_columns = [col for col in fight_data.columns if "blue" in col]
-    red_df = fight_data[red_columns].copy()
-    red_df = red_df.drop('red_result', axis=1)
-    blue_df = fight_data[blue_columns].copy()
-    
-    red_df.columns = ['Fighter', 'avg_kd', 'avg_tot_str_lnd', 'avg_tot_str_att', 'avg_td_lnd', 'avg_td_att', 
-                    'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd', 'avg_sig_str_att', 
-                    'avg_head_sig_str_lnd', 'avg_head_sig_str_att', 'avg_body_sig_str_lnd', 
-                    'avg_body_sig_str_att', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att', 
-                    'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
-                    'avg_clch_sig_str_att', 'avg_gnd_sig_str_lnd', 'avg_gnd_sig_str_att', 
-                    'tot_str_per', 'td_per', 'sig_str_per', 'head_sig_str_per', 'body_sig_str_per', 
-                    'leg_sig_str_per', 'dist_sig_str_per', 'clch_sig_str_per', 'gnd_sig_str_per']
-    
-    blue_df.columns = ['Fighter', 'avg_kd', 'avg_tot_str_lnd', 'avg_tot_str_att', 'avg_td_lnd', 'avg_td_att', 
-                    'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd', 'avg_sig_str_att', 
-                    'avg_head_sig_str_lnd', 'avg_head_sig_str_att', 'avg_body_sig_str_lnd', 
-                    'avg_body_sig_str_att', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att', 
-                    'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
-                    'avg_clch_sig_str_att', 'avg_gnd_sig_str_lnd', 'avg_gnd_sig_str_att', 
-                    'tot_str_per', 'td_per', 'sig_str_per', 'head_sig_str_per', 'body_sig_str_per', 
-                    'leg_sig_str_per', 'dist_sig_str_per', 'clch_sig_str_per', 'gnd_sig_str_per']
-    
-    career_fighter_stats_df = pd.concat([red_df, blue_df], ignore_index=True)
-    career_fighter_stats_df = career_fighter_stats_df.groupby('Fighter').mean().reset_index()
-
-
-    # TODO: create heuristic to determine whether a fighter is a grappler or striker
-
-    # set default glicko values
-    fighters['rating'] = 1500
-    fighters['rd'] = 350
-    fighters['volatility'] = 0.06
+def computeGlicko(fights, fighters):
+    # create glicko columns
+    fighters[['rating', 'rd', 'volatility']] = 0
+    fights[['red_rating', 'blue_rating']] = 0
     
     # calculate and update glicko2 ratings from each fight for both fighters
-    for _, fight in fight_data[::-1].iterrows():
+    for _, fight in fights[::-1].iterrows():
         # get glicko stats for both fighters
         red = fight['red']
         blue = fight['blue']
@@ -135,14 +130,78 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
         blue_v = fighters[fighters['name'] == blue]['volatility'].iloc[0]
 
         # compute new glicko ratings
-        fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = calculateGlicko(
+        fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = updateGlicko(
             red_r, red_rd, blue_r, blue_rd, red_v, red_result
         )
 
-        fighters.loc[fighters['name'] == blue, ['rating', 'rd', 'volatility']] = calculateGlicko(
+        fighters.loc[fighters['name'] == blue, ['rating', 'rd', 'volatility']] = updateGlicko(
             blue_r, blue_rd, red_r, red_rd, blue_v, blue_result
         )
 
+    return fights, fighters
+
+def calculate_totals(df):
+    # Sum total for all rounds
+    for i, stat in enumerate(totals_columns):
+        df[f'sum_red_{stat}'] = df.iloc[:, 9+i:229+i:44].sum(axis=1, numeric_only=True)
+        df[f'sum_blue_{stat}'] = df.iloc[:, 10+i:230+i:44].sum(axis=1, numeric_only=True)
+
+    return df
+
+def calculate_percentages(df):
+    # Calculates Percentages for stats with landed & attempts
+    for stat in percents_columns:
+        # For red stats
+        df[f'red_{stat}_pct'] = df[f'sum_red_{stat}_lnd'] / df[f'sum_red_{stat}_att']
+        # Set to 0 if division results in NaN or if sum_red_{stat}_att is 0
+        df[f'red_{stat}_pct'] = df[f'red_{stat}_pct'].where(df[f'sum_red_{stat}_att'] != 0, 0)
+
+        # For blue stats
+        df[f'blue_{stat}_pct'] = df[f'sum_blue_{stat}_lnd'] / df[f'sum_blue_{stat}_att']
+        # Set to 0 if division results in NaN or if avg_blue_{stat}_att is 0
+        df[f'blue_{stat}_pct'] = df[f'blue_{stat}_pct'].where(df[f'sum_blue_{stat}_att'] != 0, 0)
+    
+    return df
+
+def calculate_averages(df):
+    # Round is set to 300 seconds / 5 minutes
+    for stat in averages_columns:
+        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / (df['total_fight_time'] / 300)
+        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / (df['total_fight_time'] / 300)
+    return df
+
+def main(in_dir1, in_dir2, out_dir1, out_dir2):
+    fight_data = pd.read_csv(in_dir1)
+    fighters = pd.read_csv(in_dir2)
+
+    fight_data, fighters = computeGlicko(fight_data, fighters)
+
+    # generate fight features
+    fight_data = calculate_totals(fight_data) 
+    fight_data = calculate_percentages(fight_data) 
+    fight_data = calculate_averages(fight_data)
+
+    # drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
+    fight_data = fight_data.drop(fight_data.columns[range(9, 229)], axis=1)
+    fight_data = fight_data.drop(fight_data.columns[range(11, 57)], axis=1)
+
+    # Calculate Career fight data averages for fighters
+    red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
+    blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
+    red_stats = red_stats.drop('red_result', axis=1)
+    blue_stats = blue_stats.drop('blue_result', axis=1)
+
+    red_stats.columns = career_columns
+    blue_stats.columns = career_columns
+
+    career_stats = pd.concat([red_stats, blue_stats], ignore_index=True)
+    career_stats = career_stats.groupby('name').mean().reset_index()
+
+    fighters = fighters.merge(career_stats, on='name')
+
+    # TODO: create heuristic to determine whether a fighter is a grappler or striker
+
+    fight_data.to_csv(out_dir1, index=False)
     fighters.to_csv(out_dir2, index=False)
 
 if __name__ == '__main__':
