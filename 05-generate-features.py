@@ -23,19 +23,12 @@ career_columns = ['name', 'tot_str_pct', 'td_pct', 'sig_str_pct', 'head_sig_str_
                   'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
                   'avg_gnd_sig_str_lnd']
 
+red_columns = ['red' , 'red_height', 'red_reach', 'red_stance']
+blue_columns = ['blue' , 'blue_height', 'blue_reach', 'blue_stance']
+
 # adapted from https://www.glicko.net/glicko/glicko2.pdf
 # assumes every fight changes rating; does not have concept of rating period
 def updateGlicko(r, rd, opp_r, opp_rd, v, result):
-    # set default values for fighters if it is their first fight
-    if (r == 0):
-        r = 1500
-        rd = 350
-        v = 0.06
-
-    if (opp_r == 0):
-        opp_r = 1500
-        opp_rd = 350
-
     tau = 0.5 # volatility contraint constant
 
     # step 2: convert fighter stats to glicko2 scale
@@ -113,13 +106,13 @@ def computeGlicko(fights, fighters):
     fights[['red_rating', 'blue_rating']] = 0
     
     # calculate and update glicko2 ratings from each fight for both fighters
-    for _, fight in fights[::-1].iterrows():
+    for i, fight in fights.iterrows():
         # get glicko stats for both fighters
         red = fight['red']
         blue = fight['blue']
 
-        red_result = fight['red_result'] == 'W'
-        blue_result = fight['blue_result'] == 'W'
+        red_result = fight['red_result']
+        blue_result = 1 - red_result
 
         red_r = fighters[fighters['name'] == red]['rating'].iloc[0]
         red_rd = fighters[fighters['name'] == red]['rd'].iloc[0]
@@ -128,6 +121,21 @@ def computeGlicko(fights, fighters):
         blue_r = fighters[fighters['name'] == blue]['rating'].iloc[0]
         blue_rd = fighters[fighters['name'] == blue]['rd'].iloc[0]
         blue_v = fighters[fighters['name'] == blue]['volatility'].iloc[0]
+
+        # set default values for fighters if it is their first fight
+        if (red_r == 0):
+            red_r = 1500
+            red_rd = 350
+            red_v = 0.06
+
+        if (blue_r == 0):
+            blue_r = 1500
+            blue_rd = 350
+            blue_v = 0.06
+
+        # add glicko rating before fight
+        fights.loc[i, 'red_rating'] = red_r
+        fights.loc[i, 'blue_rating'] = blue_r
 
         # compute new glicko ratings
         fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = updateGlicko(
@@ -183,23 +191,32 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
 
     # drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
     fight_data = fight_data.drop(fight_data.columns[range(9, 229)], axis=1)
-    fight_data = fight_data.drop(fight_data.columns[range(11, 57)], axis=1)
+    fight_data = fight_data.drop(fight_data.columns[range(13, 57)], axis=1)
 
     # Calculate Career fight data averages for fighters
     red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
     blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
-    red_stats = red_stats.drop('red_result', axis=1)
-    blue_stats = blue_stats.drop('blue_result', axis=1)
+    red_stats = red_stats.drop(['red_result', 'red_rating'], axis=1)
+    blue_stats = blue_stats.drop(['blue_result', 'blue_rating'], axis=1)
 
     red_stats.columns = career_columns
     blue_stats.columns = career_columns
 
     career_stats = pd.concat([red_stats, blue_stats], ignore_index=True)
     career_stats = career_stats.groupby('name').mean().reset_index()
-
+    
+    # merge career stats with fighters
     fighters = fighters.merge(career_stats, on='name')
 
-    # TODO: create heuristic to determine whether a fighter is a grappler or striker
+    # merge individual fighter stats with fight data
+    fight_data = fight_data.merge(
+        fighters[['name', 'height', 'reach', 'stance']].set_axis(red_columns, axis=1), 
+        on='red' 
+    )
+    fight_data = fight_data.merge(
+        fighters[['name', 'height', 'reach', 'stance']].set_axis(blue_columns, axis=1), 
+        on='blue'
+    )
 
     fight_data.to_csv(out_dir1, index=False)
     fighters.to_csv(out_dir2, index=False)
