@@ -52,8 +52,8 @@ def main(in_dir, out_dir):
     df = df.apply(handle_duplicate_name, axis=1)
     df = df[df['name'] != '(No UFC Fights)']
     
-    # Step 6. Drop weight and weight_class columns
-    df.drop(columns=['weight_class', 'weight'], inplace=True)
+    # Step 6. Drop weight, weight_classes, and fight record
+    df.drop(columns=['weight_class', 'weight', 'wins', 'losses', 'draws'], inplace=True)
     
     # Output the cleaned data to a new CSV file
     df.to_csv(out_dir, index=False)
@@ -81,16 +81,23 @@ def handle_duplicate_name(row):
     """
     Handle duplicate names by checking each name.
     """
-    # List of fighters with same name that have no UFC fights
-    no_ufc_fights = ['Mike Davis', 'Joey Gomez', 'Tony Johnson', 'Michael McDonald', 'Jean Silva']
-    if row['name'] in no_ufc_fights:
+    # Dictionary of fighters and their records with same name that have no UFC fights
+    no_ufc_fights = {
+        'Mike Davis': '2-0-0', 
+        'Joey Gomez': '7-1-0', 
+        'Michael McDonald': '1-1-0', 
+        'Jean Silva': '14-6-2'
+    }
+    wins = row['wins']
+    losses = row['losses']
+    draws = row['draws']
+    record = f'{wins}-{losses}-{draws}'
+    if row['name'] in list(no_ufc_fights.keys()) and no_ufc_fights[row['name']] == record:
         row['name'] = '(No UFC Fights)'
     
     # Handle case for duplicates with UFC fights
     if row['name'] == 'Bruno Silva' and row['height'] == 64:
         row['name'] = 'Bruno \'Bulldog\' Silva'
-    elif row['name'] == 'Bruno Silva' and row['height'] == 72:
-        row['name'] = 'Bruno \'Blindado\' Silva'
     
     return row
 

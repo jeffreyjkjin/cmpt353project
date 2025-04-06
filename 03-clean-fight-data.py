@@ -99,14 +99,14 @@ def main(in_dir, out_dir):
     # Fill empty entries with 0s
     df = df.fillna(0)
 
-    df['date'] = pd.to_datetime(df['date'], format='%d-%b-%y')
+    df['date'] = pd.to_datetime(df['date'], format='%B %d, %Y')
     df = df.sort_values(by='date')
 
     df['format'] = df['format'].apply(standardize_format)
 
     df['red_result'] = df['red_result'].apply(standardize_result)
 
-    df['total_fight_time'] = df.apply(calculate_fight_time, axis=1)
+    df['time'] = df.apply(calculate_fight_time, axis=1)
 
     # Rename one of the Bruno Silvas to Bruno Bulldog Silva by manually finding Bulldog's Fights
     dates_to_check = pd.to_datetime([
@@ -120,14 +120,11 @@ def main(in_dir, out_dir):
         '2019-10-05'
     ])
 
-    df_filtered = df[df['date'].isin(dates_to_check)]
+    df_filter = df['date'].isin(dates_to_check)
+    df.loc[df_filter & (df['red'] == 'Bruno Silva'), 'red'] = "Bruno 'Bulldog' Silva"
+    df.loc[df_filter & (df['blue'] == 'Bruno Silva'), 'blue'] = "Bruno 'Bulldog' Silva"
 
-    df.loc[df_filtered.index, 'red'] = df_filtered['red'].replace('Bruno Silva', 'Bruno Bulldog Silva')
-    df.loc[df_filtered.index, 'blue'] = df_filtered['blue'].replace('Bruno Silva', 'Bruno Bulldog Silva')
-    df.update(df_filtered)
-
-    columns_to_keep = [col for col in df.columns if col not in ['outcome', 'time', 'round', 'format', 'blue_result']]
-    df = df[columns_to_keep]
+    df = df.drop(['blue_result', 'outcome', 'round', 'format'], axis=1)
 
     df.to_csv(out_dir, index=False)
 
