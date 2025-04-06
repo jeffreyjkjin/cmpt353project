@@ -1,6 +1,8 @@
 import pandas as pd
 import sys
 
+weight_classes = [0, 115, 125, 135, 145, 155, 170, 185, 205, 265, float('inf')]
+
 def main(in_dir, out_dir):
     df = pd.read_csv(in_dir)
     # Step 0. Replace missing values with NaN
@@ -18,18 +20,20 @@ def main(in_dir, out_dir):
         lambda row: row['height'] if pd.isna(row['reach']) else row['reach'], axis=1
     )
     
-    # Step 2b. Use mode of weight class if it is missing
+    # Step 2b. Use mode of weight class if it is missing, then convert to int
     mode_weight = df['weight'].mode()[0]
-    df['weight'] = df['weight'].fillna(mode_weight)
+    df['weight'] = df['weight'].fillna(mode_weight).apply(
+        lambda x: int((x.rstrip(' lbs.'))) if isinstance(x, str) else x
+    )
     
     # Step 2c. Use average of height and reach in weight class if both are missing
-    avg_height = pd.to_numeric(df['height'].groupby(df['weight']).mean())
-    avg_reach = pd.to_numeric(df['reach'].groupby(df['weight']).mean())
+    # First, assign each fighter to a weight class
+    df['weight_class'] = pd.cut(df['weight'], bins=weight_classes, right=False)
     
-    # Clean up NaN values in average height and reach by linear interpolation
-    avg_height.interpolate(method='linear', inplace=True)
-    avg_reach.interpolate(method='linear', inplace=True)
-    
+    # Calculate the average height and reach for each weight class
+    avg_height = pd.to_numeric(df['height'].groupby(df['weight_class'], observed=True).mean())
+    avg_reach = pd.to_numeric(df['reach'].groupby(df['weight_class'], observed=True).mean())
+
     # Fill NaN values with the mean of the column
     df['height'] = df['height'].fillna(df['weight'].map(avg_height))
     df['reach'] = df['reach'].fillna(df['weight'].map(avg_reach))
@@ -38,20 +42,18 @@ def main(in_dir, out_dir):
     df['stance'] = df['stance'].fillna('Orthodox')
     
     # Step 3. Convert height and reach to integers
-    df['height'] = df['height'].astype(int)
-    df['reach'] = df['reach'].astype(int)
+    df['height'] = df['height'].round().astype(int)
+    df['reach'] = df['reach'].round().astype(int)
     
-    # Step 4. Convert weight to int
-    df['weight'] = df['weight'].apply(
-        lambda x: int((x.rstrip(' lbs.'))) if isinstance(x, str) else x
-    )
-    
-    # Step 5. Remove fighters with no fights
+    # Step 4. Remove fighters with no fights
     df = df[(df['wins'] > 0) | (df['losses'] > 0) | (df['draws'] > 0)]
     
-    # Step 6. Assign nicknames to fighters with the same name
-    name_counter = {}
-    df['name'] = df['name'].apply(make_unique, counter=name_counter)
+    # Step 5. Handle fighters with the same name
+    df = df.apply(handle_duplicate_name, axis=1)
+    df = df[df['name'] != '(No UFC Fights)']
+    
+    # Step 6. Drop weight and weight_class columns
+    df.drop(columns=['weight_class', 'weight'], inplace=True)
     
     # Output the cleaned data to a new CSV file
     df.to_csv(out_dir, index=False)
@@ -75,16 +77,22 @@ def ft_to_in(str):
     feet, inches = map(int, str.split("'"))
     return int(feet * 12 + inches)
 
-def make_unique(value, counter):
+def handle_duplicate_name(row):
     """
-    Create nicknames by appending a counter if it already exists.
+    Handle duplicate names by checking each name.
     """
-    if value not in counter:
-        counter[value] = 1
-        return value
-    else:
-        counter[value] += 1
-        return f"{value}-{counter[value]}" 
+    # List of fighters with same name that have no UFC fights
+    no_ufc_fights = ['Mike Davis', 'Joey Gomez', 'Tony Johnson', 'Michael McDonald', 'Jean Silva']
+    if row['name'] in no_ufc_fights:
+        row['name'] = '(No UFC Fights)'
+    
+    # Handle case for duplicates with UFC fights
+    if row['name'] == 'Bruno Silva' and row['height'] == 64:
+        row['name'] = 'Bruno \'Bulldog\' Silva'
+    elif row['name'] == 'Bruno Silva' and row['height'] == 72:
+        row['name'] = 'Bruno \'Blindado\' Silva'
+    
+    return row
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2])
