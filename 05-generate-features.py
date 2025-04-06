@@ -2,8 +2,8 @@ import math
 import pandas as pd
 import sys
 
-totals_columns = ['kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_att', 'rev', 'ctrl', 
-                  'sig_str_lnd', 'sig_str_att', 'head_sig_str_lnd', 'head_sig_str_att', 
+totals_columns = ['time', 'kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_att', 'rev', 
+                  'ctrl', 'sig_str_lnd', 'sig_str_att', 'head_sig_str_lnd', 'head_sig_str_att', 
                   'body_sig_str_lnd', 'body_sig_str_att', 'leg_sig_str_lnd', 'leg_sig_str_att', 
                   'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'clch_sig_str_att', 
                   'gnd_sig_str_lnd', 'gnd_sig_str_att']
@@ -11,14 +11,14 @@ totals_columns = ['kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_a
 percents_columns = ['tot_str', 'td', 'sig_str', 'head_sig_str', 'body_sig_str', 'leg_sig_str',
                     'dist_sig_str', 'clch_sig_str', 'gnd_sig_str']
 
-averages_columns = ['kd', 'tot_str_lnd', 'td_lnd', 'sub_att', 'rev', 'ctrl', 'sig_str_lnd', 
+averages_columns = ['time', 'kd', 'tot_str_lnd', 'td_lnd', 'sub_att', 'rev', 'ctrl', 'sig_str_lnd', 
                     'head_sig_str_lnd', 'body_sig_str_lnd', 'leg_sig_str_lnd', 'leg_sig_str_att',
                     'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'gnd_sig_str_lnd',]
 
 career_columns = ['name', 'tot_str_pct', 'td_pct', 'sig_str_pct', 'head_sig_str_pct', 
                   'body_sig_str_pct', 'leg_sig_str_pct', 'dist_sig_str_pct', 'clch_sig_str_pct', 
-                  'gnd_sig_str_pct', 'avg_kd', 'avg_tot_str_lnd', 'avg_td_lnd', 'avg_sub_att', 
-                  'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd','avg_head_sig_str_lnd', 
+                  'gnd_sig_str_pct', 'avg_time', 'avg_kd', 'avg_tot_str_lnd', 'avg_td_lnd', 
+                  'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd','avg_head_sig_str_lnd', 
                   'avg_body_sig_str_lnd', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att',
                   'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
                   'avg_gnd_sig_str_lnd']
@@ -151,8 +151,8 @@ def computeGlicko(fights, fighters):
 def calculate_totals(df):
     # Sum total for all rounds
     for i, stat in enumerate(totals_columns):
-        df[f'sum_red_{stat}'] = df.iloc[:, 9+i:229+i:44].sum(axis=1, numeric_only=True)
-        df[f'sum_blue_{stat}'] = df.iloc[:, 10+i:230+i:44].sum(axis=1, numeric_only=True)
+        df[f'sum_red_{stat}'] = df.iloc[:, 4+i:224+i:44].sum(axis=1, numeric_only=True)
+        df[f'sum_blue_{stat}'] = df.iloc[:, 5+i:225+i:44].sum(axis=1, numeric_only=True)
 
     return df
 
@@ -174,8 +174,8 @@ def calculate_percentages(df):
 def calculate_averages(df):
     # Round is set to 300 seconds / 5 minutes
     for stat in averages_columns:
-        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / (df['total_fight_time'] / 300)
-        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / (df['total_fight_time'] / 300)
+        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / (df['time'] / 300)
+        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / (df['time'] / 300)
     return df
 
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
@@ -190,14 +190,15 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = calculate_averages(fight_data)
 
     # drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
-    fight_data = fight_data.drop(fight_data.columns[range(9, 229)], axis=1)
-    fight_data = fight_data.drop(fight_data.columns[range(13, 57)], axis=1)
+    fight_data = fight_data.drop(fight_data.columns[range(5, 273)], axis=1)
+
+    fight_data, fighters = computeGlicko(fight_data, fighters)
 
     # Calculate Career fight data averages for fighters
     red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
     blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
     red_stats = red_stats.drop(['red_result', 'red_rating'], axis=1)
-    blue_stats = blue_stats.drop(['blue_result', 'blue_rating'], axis=1)
+    blue_stats = blue_stats.drop(['blue_rating'], axis=1)
 
     red_stats.columns = career_columns
     blue_stats.columns = career_columns
