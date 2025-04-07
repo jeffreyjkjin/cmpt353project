@@ -2,7 +2,7 @@ import math
 import pandas as pd
 import sys
 
-totals_columns = ['time', 'kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_att', 'rev', 
+totals_columns = ['kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att', 'sub_att', 'rev', 
                   'ctrl', 'sig_str_lnd', 'sig_str_att', 'head_sig_str_lnd', 'head_sig_str_att', 
                   'body_sig_str_lnd', 'body_sig_str_att', 'leg_sig_str_lnd', 'leg_sig_str_att', 
                   'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'clch_sig_str_att', 
@@ -11,17 +11,16 @@ totals_columns = ['time', 'kd', 'tot_str_lnd', 'tot_str_att', 'td_lnd', 'td_att'
 percents_columns = ['tot_str', 'td', 'sig_str', 'head_sig_str', 'body_sig_str', 'leg_sig_str',
                     'dist_sig_str', 'clch_sig_str', 'gnd_sig_str']
 
-averages_columns = ['time', 'kd', 'tot_str_lnd', 'td_lnd', 'sub_att', 'rev', 'ctrl', 'sig_str_lnd', 
-                    'head_sig_str_lnd', 'body_sig_str_lnd', 'leg_sig_str_lnd', 'leg_sig_str_att',
-                    'dist_sig_str_lnd', 'dist_sig_str_att', 'clch_sig_str_lnd', 'gnd_sig_str_lnd',]
+averages_columns = ['kd', 'tot_str_lnd', 'td_lnd', 'sub_att', 'rev', 'ctrl', 'sig_str_lnd', 
+                    'head_sig_str_lnd', 'body_sig_str_lnd', 'leg_sig_str_lnd', 'dist_sig_str_lnd', 
+                    'clch_sig_str_lnd', 'gnd_sig_str_lnd',]
 
 career_columns = ['name', 'tot_str_pct', 'td_pct', 'sig_str_pct', 'head_sig_str_pct', 
                   'body_sig_str_pct', 'leg_sig_str_pct', 'dist_sig_str_pct', 'clch_sig_str_pct', 
-                  'gnd_sig_str_pct', 'avg_time', 'avg_kd', 'avg_tot_str_lnd', 'avg_td_lnd', 
+                  'gnd_sig_str_pct', 'avg_kd', 'avg_tot_str_lnd', 'avg_td_lnd', 
                   'avg_sub_att', 'avg_rev', 'avg_ctrl', 'avg_sig_str_lnd','avg_head_sig_str_lnd', 
-                  'avg_body_sig_str_lnd', 'avg_leg_sig_str_lnd', 'avg_leg_sig_str_att',
-                  'avg_dist_sig_str_lnd', 'avg_dist_sig_str_att', 'avg_clch_sig_str_lnd', 
-                  'avg_gnd_sig_str_lnd']
+                  'avg_body_sig_str_lnd', 'avg_leg_sig_str_lnd', 'avg_dist_sig_str_lnd', 
+                  'avg_clch_sig_str_lnd', 'avg_gnd_sig_str_lnd']
 
 red_columns = ['red' , 'red_height', 'red_reach', 'red_stance']
 blue_columns = ['blue' , 'blue_height', 'blue_reach', 'blue_stance']
@@ -150,9 +149,9 @@ def computeGlicko(fights, fighters):
 
 def calculate_totals(df):
     # Sum total for all rounds
-    for i, stat in enumerate(totals_columns):
-        df[f'sum_red_{stat}'] = df.iloc[:, 4+i:224+i:44].sum(axis=1, numeric_only=True)
-        df[f'sum_blue_{stat}'] = df.iloc[:, 5+i:225+i:44].sum(axis=1, numeric_only=True)
+    for stat in totals_columns:
+        df[f'sum_red_{stat}'] = df[[col for col in df.columns if f'red_{stat}' in col]].sum(axis=1)
+        df[f'sum_blue_{stat}'] = df[[col for col in df.columns if f'blue_{stat}' in col]].sum(axis=1)
 
     return df
 
@@ -172,17 +171,15 @@ def calculate_percentages(df):
     return df
 
 def calculate_averages(df):
-    # Round is set to 300 seconds / 5 minutes
+    # calculate per round stats
     for stat in averages_columns:
-        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / (df['time'] / 300)
-        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / (df['time'] / 300)
+        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / df['round']
+        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / df['round']
     return df
 
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = pd.read_csv(in_dir1)
     fighters = pd.read_csv(in_dir2)
-
-    fight_data, fighters = computeGlicko(fight_data, fighters)
 
     # generate fight features
     fight_data = calculate_totals(fight_data) 
@@ -190,7 +187,7 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = calculate_averages(fight_data)
 
     # drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
-    fight_data = fight_data.drop(fight_data.columns[range(5, 273)], axis=1)
+    fight_data = fight_data.drop(fight_data.columns[range(4, 270)], axis=1)
 
     fight_data, fighters = computeGlicko(fight_data, fighters)
 
