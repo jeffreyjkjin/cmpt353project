@@ -90,6 +90,25 @@ def calculate_fight_time(row):
     # Return None if the format doesn't match
     return None  
 
+def timeToInt(row):
+    for i in range(1, 6):
+        red_ctrl = row[f'r{i}_red_ctrl']
+        blue_ctrl = row[f'r{i}_blue_ctrl']
+
+        if red_ctrl in ['--', 0]: 
+            row[f'r{i}_red_ctrl'] = 0
+        else:
+            red_ctrl = red_ctrl.split(':')
+            row[f'r{i}_red_ctrl'] = int(red_ctrl[0])*60 + int(red_ctrl[1])
+
+        if blue_ctrl in ['--', 0]: 
+            row[f'r{i}_blue_ctrl'] = 0
+        else:
+            blue_ctrl = blue_ctrl.split(':')
+            row[f'r{i}_blue_ctrl'] = int(blue_ctrl[0])*60 + int(blue_ctrl[1])
+    
+    return row
+
 def main(in_dir, out_dir):
     df = pd.read_csv(in_dir)
 
@@ -108,6 +127,8 @@ def main(in_dir, out_dir):
 
     df['time'] = df.apply(calculate_fight_time, axis=1)
 
+    df = df.apply(timeToInt, axis=1)
+
     # Rename one of the Bruno Silvas to Bruno Bulldog Silva by manually finding Bulldog's Fights
     dates_to_check = pd.to_datetime([
         '2024-12-14',
@@ -124,7 +145,7 @@ def main(in_dir, out_dir):
     df.loc[df_filter & (df['red'] == 'Bruno Silva'), 'red'] = "Bruno 'Bulldog' Silva"
     df.loc[df_filter & (df['blue'] == 'Bruno Silva'), 'blue'] = "Bruno 'Bulldog' Silva"
 
-    df = df.drop(['blue_result', 'outcome', 'round', 'format'], axis=1)
+    df = df.drop(['blue_result', 'outcome', 'format'], axis=1)
 
     df.to_csv(out_dir, index=False)
 
