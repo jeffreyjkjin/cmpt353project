@@ -99,13 +99,25 @@ def updateGlicko(r, rd, opp_r, opp_rd, v, result):
 
     return new_r, new_rd, sigma_p
 
+# calculates probability that a fighter will beat their opponent
+# adapted from https://www.glicko.net/glicko/glicko.pdf
+def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
+    q = math.log(10)/400
+    g = 1/math.sqrt(1 + ((3*q**2) * (rd**2 + opp_rd**2)/(math.pi**2))) 
+    exp = (-g*(r - opp_r))/400
+
+    return 1/(1 + 10**exp)
+
 def computeGlicko(fights, fighters):
     # create glicko columns
     fighters[['rating', 'rd', 'volatility']] = 0
-    fights[['red_rating', 'blue_rating']] = 0
+    fights[['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome']] = 0
     
     # calculate and update glicko2 ratings from each fight for both fighters
-    for i, fight in fights.iterrows():
+    num_fights = len(fights)
+    for i in range(0, num_fights):
+        fight = fights.iloc[i]
+
         # get glicko stats for both fighters
         red = fight['red']
         blue = fight['blue']
@@ -132,9 +144,11 @@ def computeGlicko(fights, fighters):
             blue_rd = 350
             blue_v = 0.06
 
-        # add glicko rating before fight
-        fights.loc[i, 'red_rating'] = red_r
-        fights.loc[i, 'blue_rating'] = blue_r
+        # add glicko rating before fight to compute outcome odds
+        fights.loc[i, ['red_rating', 'red_rd']] = red_r, red_rd
+        fights.loc[i, ['blue_rating', 'blue_rd']] = blue_r, blue_rd
+
+        fights.loc[i, 'exp_red_outcome'] = expectedGlickoOutcome(red_r, red_rd, blue_r, blue_rd)
 
         # compute new glicko ratings
         fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = updateGlicko(
@@ -194,8 +208,8 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
     # Calculate Career fight data averages for fighters
     red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
     blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
-    red_stats = red_stats.drop(['red_result', 'red_rating'], axis=1)
-    blue_stats = blue_stats.drop(['blue_rating'], axis=1)
+    red_stats = red_stats.drop(['red_result', 'red_rating', 'red_rd', 'exp_red_outcome'], axis=1)
+    blue_stats = blue_stats.drop(['blue_rating', 'blue_rd'], axis=1)
 
     red_stats.columns = career_columns
     blue_stats.columns = career_columns
