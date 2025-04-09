@@ -108,15 +108,33 @@ def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
 
     return 1/(1 + 10**exp)
 
+# decays fighters rd
+def computeDecay(fighter):
+    phi = fighter['rd']/173.7178
+    phi_p = math.sqrt(phi** + fighter['volatility']**2)
+
+    return 173.7178 * phi_p    
+
 def computeGlicko(fights, fighters):
     # create glicko columns
-    fighters[['rating', 'rd', 'volatility']] = 0
+    fighters[['rating', 'rd', 'volatility', 'last_fight']] = 0, 0, 0, None
     fights[['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome']] = 0
+    
+    start_date = pd.to_datetime(fights.iloc[0]['date'])
+    end_date = start_date + pd.Timedelta(days=365)
     
     # calculate and update glicko2 ratings from each fight for both fighters
     num_fights = len(fights)
     for i in range(0, num_fights):
         fight = fights.iloc[i]
+
+        # compute decay for fighters who haven't fought in last year once end_date has passed 
+        if (pd.to_datetime(fight['date']) > end_date):
+            inactive = (fighters['last_fight'] != None) & (pd.to_datetime(fighters['last_fight']) < start_date)
+            fighters.loc[inactive, 'rd'] = fighters.apply(computeDecay, axis=1)
+
+            start_date = end_date
+            end_date += pd.Timedelta(days=365)
 
         # get glicko stats for both fighters
         red = fight['red']
@@ -135,14 +153,10 @@ def computeGlicko(fights, fighters):
 
         # set default values for fighters if it is their first fight
         if (red_r == 0):
-            red_r = 1500
-            red_rd = 350
-            red_v = 0.06
+            red_r, red_rd, red_v = 1500, 350, 0.06
 
         if (blue_r == 0):
-            blue_r = 1500
-            blue_rd = 350
-            blue_v = 0.06
+            blue_r, blue_rd, blue_v = 1500, 350, 0.06
 
         # add glicko rating before fight to compute outcome odds
         fights.loc[i, ['red_rating', 'red_rd']] = red_r, red_rd
@@ -158,6 +172,12 @@ def computeGlicko(fights, fighters):
         fighters.loc[fighters['name'] == blue, ['rating', 'rd', 'volatility']] = updateGlicko(
             blue_r, blue_rd, red_r, red_rd, blue_v, blue_result
         )
+
+        # set last fight date
+        fighters.loc[fighters['name'] == red, 'last_fight'] = fight['date']
+        fighters.loc[fighters['name'] == blue, 'last_fight'] = fight['date']
+
+    fighters = fighters.drop(['last_fight'], axis=1)
 
     return fights, fighters
 
