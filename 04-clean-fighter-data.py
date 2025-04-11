@@ -55,6 +55,10 @@ def main(in_dir, out_dir):
     # Step 6. Drop weight, weight_classes, and fight record
     df.drop(columns=['weight_class', 'weight', 'wins', 'losses', 'draws'], inplace=True)
     
+    df['stance'] = df['stance'].replace('Open Stance', 'Switch')
+    df['stance'] = df['stance'].replace('Sideways', 'Switch')
+    df['stance'] = df['stance'].apply(stance_to_num)
+
     # Output the cleaned data to a new CSV file
     df.to_csv(out_dir, index=False)
     
@@ -100,6 +104,11 @@ def handle_duplicate_name(row):
         row['name'] = 'Bruno \'Bulldog\' Silva'
     
     return row
+
+def stance_to_num(stance):
+    """ Convert stance string to numeric """
+    stance_mapping = {'Orthodox': 1, 'Southpaw': 2, 'Switch': 3}
+    return stance_mapping.get(stance, 0)
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2])

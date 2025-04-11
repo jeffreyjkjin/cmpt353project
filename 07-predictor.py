@@ -3,11 +3,6 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import joblib
 
-def stance_to_num(stance):
-    """ Convert stance string to numeric """
-    stance_mapping = {'Orthodox': 1, 'Southpaw': 2, 'Switch': 3}
-    return stance_mapping.get(stance, 0)
-
 # Returns the probability that fighter1 (red) wins
 def predict_winner(fighter1, fighter2, model, column_list, scaler):
     fighter1_name = fighter1['name']
@@ -23,10 +18,6 @@ def predict_winner(fighter1, fighter2, model, column_list, scaler):
     # Add prefix to columns
     fighter1 = fighter1.add_prefix('red_')
     fighter2 = fighter2.add_prefix('blue_')
-    
-    # Convert stance to numeric
-    fighter1['red_stance'] = fighter1['red_stance'].apply(stance_to_num)
-    fighter2['blue_stance'] = fighter2['blue_stance'].apply(stance_to_num)
     
     fighter1.reset_index(drop=True, inplace=True)
     fighter2.reset_index(drop=True, inplace=True)

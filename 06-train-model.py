@@ -11,11 +11,6 @@ import joblib
 # TODO: implement functions for training each model
 #       save weights for model and as well training/validation set scores
 
-def stance_to_num(stance):
-    """ Convert stance string to numeric """
-    stance_mapping = {'Orthodox': 1, 'Southpaw': 2, 'Switch': 3}
-    return stance_mapping.get(stance, 0)
-
 def train_svm(X_train, y_train, X_test, y_test):
     # Scale Data
     scaler = StandardScaler()
@@ -52,11 +47,7 @@ def main(fights, fighters, model, num_runs):
     # TODO: write a selector to pick which model to train
     #       train the model num_runs times
 
-
     fight_df = pd.read_csv(fights)
-
-    fight_df['red_stance'] = fight_df['red_stance'].apply(stance_to_num)
-    fight_df['blue_stance'] = fight_df['blue_stance'].apply(stance_to_num)
 
     X = fight_df.drop(columns=['red_result', 'date','red','blue', 'exp_red_outcome'])
     y = fight_df['red_result']
