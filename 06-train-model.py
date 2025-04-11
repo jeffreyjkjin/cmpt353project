@@ -38,12 +38,63 @@ def train_svm_classifier(X_train, y_train, X_test, y_test):
     print(classification_report(y_test, y_pred, zero_division=0))
     return accuracy, svc
 
+
+def train_decision_tree_regressor(X_train, y_train, X_test, y_test):
+    dt = DecisionTreeRegressor(max_depth=5, min_samples_split=2, min_samples_leaf=2)
+    dt.fit(X_train, y_train)
+    y_pred = dt.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(f"DecisionTreeRegressor MSE: {mse:.4f}, R²: {r2:.4f}")
+    return mse, r2, dt
+
+
+def train_decision_tree_classifier(X_train, y_train, X_test, y_test):
+    clf = DecisionTreeClassifier(max_depth=10, min_samples_split=2, min_samples_leaf=1)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"DecisionTreeClassifier Accuracy: {accuracy:.4f}")
+    print(classification_report(y_test, y_pred, zero_division=0))
+    return accuracy, clf
+
+
+def train_random_forest_regressor(X_train, y_train, X_test, y_test):
+    rf = RandomForestRegressor(
+        n_estimators=200, max_depth=10, min_samples_split=5, min_samples_leaf=2
+    )
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(f"RandomForestRegressor MSE: {mse:.4f}, R²: {r2:.4f}")
+    return mse, r2, rf
+
+
+def train_random_forest_classifier(X_train, y_train, X_test, y_test):
+    clf = RandomForestClassifier(
+        n_estimators=50, max_depth=10, min_samples_split=2, min_samples_leaf=1, class_weight='balanced'
+    )
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"RandomForestClassifier Accuracy: {accuracy:.4f}")
+    print(classification_report(y_test, y_pred, zero_division=0))
+    return accuracy, clf
+
+
+def main(fights, model_path):
     fight_df = pd.read_csv(fights)
     # print("Tie count:", (fight_df['red_result'] == 0.5).sum())
 
-    X = fight_df.drop(columns=['red_result', 'date','red','blue', 'exp_red_outcome'])
-    y = fight_df['red_result']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    # Models with Draws
+    print("\n========== REGRESSION (WITH DRAWS) ==========")
+    X = fight_df.drop(columns=['red_result', 'date', 'red', 'blue', 'red_rating', 'blue_rating'])
+    y_reg = fight_df['red_result']
+    X_train, X_test, y_train, y_test = train_test_split(X, y_reg, test_size=0.2, random_state=42)
+    train_svm(X_train, y_train, X_test, y_test)
+    train_decision_tree_regressor(X_train, y_train, X_test, y_test)
+    train_random_forest_regressor(X_train, y_train, X_test, y_test)
 
     print("\n========== CLASSIFICATION (WITH DRAWS) ==========")
     y_clf = y_reg.apply(to_int)
@@ -58,7 +109,7 @@ def train_svm_classifier(X_train, y_train, X_test, y_test):
     no_draws_df = fight_df[fight_df['red_result'] != 0.5].copy()
     no_draws_df['red_result'] = no_draws_df['red_result'].astype(int)
 
-    X = no_draws_df.drop(columns=['red_result', 'date', 'red', 'blue'])
+    X = no_draws_df.drop(columns=['red_result', 'date', 'red', 'blue', 'red_rating', 'blue_rating'])
     y_reg = no_draws_df['red_result']
     X_train, X_test, y_train, y_test = train_test_split(X, y_reg, test_size=0.2, random_state=42)
     train_svm(X_train, y_train, X_test, y_test)
