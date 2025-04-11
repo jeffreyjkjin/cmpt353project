@@ -118,7 +118,9 @@ def computeDecay(fighter):
 def computeGlicko(fights, fighters):
     # create glicko columns
     fighters[['rating', 'rd', 'volatility', 'last_fight']] = 0, 0, 0, None
-    fights[['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome']] = 0
+    new_fight_cols = ['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome', 
+                      'new_red_rating', 'new_blue_rating']
+    fights[new_fight_cols] = 0
     
     start_date = pd.to_datetime(fights.iloc[0]['date'])
     end_date = start_date + pd.Timedelta(days=365)
@@ -173,6 +175,10 @@ def computeGlicko(fights, fighters):
             blue_r, blue_rd, red_r, red_rd, blue_v, blue_result
         )
 
+        # add new glicko rating to fight
+        fights.loc[i, 'new_red_rating'] = fighters[fighters['name'] == red]['rating'].iloc[0]
+        fights.loc[i, 'new_blue_rating'] = fighters[fighters['name'] == blue]['rating'].iloc[0]
+
         # set last fight date
         fighters.loc[fighters['name'] == red, 'last_fight'] = fight['date']
         fighters.loc[fighters['name'] == blue, 'last_fight'] = fight['date']
@@ -205,11 +211,28 @@ def calculate_percentages(df):
     return df
 
 def calculate_averages(df):
-    # calculate per round stats
+    # Calculate Career fight data averages for fighters
     for stat in averages_columns:
         df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / df['round']
         df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / df['round']
     return df
+
+def calculate_career_stats(fight_data):
+    red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
+    blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
+    red_stats = red_stats.drop(
+        ['red_result', 'red_rating', 'red_rd', 'exp_red_outcome', 'new_red_rating'], 
+        axis=1
+    )
+    blue_stats = blue_stats.drop(['blue_rating', 'blue_rd', 'new_blue_rating'], axis=1)
+
+    red_stats.columns = career_columns
+    blue_stats.columns = career_columns
+
+    career_stats = pd.concat([red_stats, blue_stats], ignore_index=True)
+    career_stats = career_stats.groupby('name').mean().reset_index()   
+
+    return career_stats 
 
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = pd.read_csv(in_dir1)
@@ -225,18 +248,8 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
 
     fight_data, fighters = computeGlicko(fight_data, fighters)
 
-    # Calculate Career fight data averages for fighters
-    red_stats = fight_data[[col for col in fight_data.columns if "red" in col]]
-    blue_stats = fight_data[[col for col in fight_data.columns if "blue" in col]]
-    red_stats = red_stats.drop(['red_result', 'red_rating', 'red_rd', 'exp_red_outcome'], axis=1)
-    blue_stats = blue_stats.drop(['blue_rating', 'blue_rd'], axis=1)
+    career_stats = calculate_career_stats(fight_data) 
 
-    red_stats.columns = career_columns
-    blue_stats.columns = career_columns
-
-    career_stats = pd.concat([red_stats, blue_stats], ignore_index=True)
-    career_stats = career_stats.groupby('name').mean().reset_index()
-    
     # merge career stats with fighters
     fighters = fighters.merge(career_stats, on='name')
 
