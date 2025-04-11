@@ -48,7 +48,8 @@ def ratingChangesOverTime(fight_data):
 
     # linear regression
     reg = stats.linregress(fighter_ratings['year'], fighter_ratings['rating'])
-    print(f'Linear regression p-value: {reg.pvalue}')
+
+    print(f'Linear Regression p-value: {reg.pvalue}')
     print(f'Correlation coefficient: {reg.rvalue}')
 
     fighter_ratings['prediction'] = reg.slope * fighter_ratings['year'] + reg.intercept
@@ -56,6 +57,7 @@ def ratingChangesOverTime(fight_data):
 
     # normality on residuals
     res_norm = stats.normaltest(fighter_ratings['residual'])
+
     print(f'Normality test on residuals: {res_norm.pvalue}')
 
     # scatterplot of ratings over time
@@ -76,12 +78,45 @@ def ratingChangesOverTime(fight_data):
     plt.hist(fighter_ratings['residual'])
     plt.savefig('rating-residuals.png')
 
+def stanceAdvantage(fight_data):
+    print('**Stance Advantage**')
+
+    stance_dict = {
+        1: 'Orthodox',
+        2: 'Southpaw',
+        3: 'Switch'
+    }
+
+    # collect fighter stances and results
+    red_results = fight_data[['red_stance', 'red_result']]
+    red_results.columns = ['stance', 'result']
+    
+    blue_results = fight_data[['blue_stance', 'red_result']]
+    blue_results.loc[:, 'red_result'] = 1 - blue_results['red_result']
+    blue_results.columns = ['stance', 'result']
+
+    fight_results = pd.concat([red_results, blue_results])
+    fight_results['stance'] = fight_results['stance'].apply(lambda s: stance_dict[s])
+
+    # chi square test
+    result_table = pd.crosstab(fight_results['stance'], fight_results['result'])
+    chi2 = stats.chi2_contingency(result_table)
+
+    print(f'Chi-Square p-value: {chi2.pvalue}')
+
+    # win rates of each stance
+    result_table['winrate'] = result_table[1.0] / result_table.sum(axis=1)
+
+    print(f'Fighter stance result contigency table')
+    print(result_table)
+
 def main(fight_dir, fighter_dir):
     fights = pd.read_csv(fight_dir)
     fighters = pd.read_csv(fighter_dir)
 
     getTop10(fights, fighters)
     ratingChangesOverTime(fights)
+    stanceAdvantage(fights)
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2])
