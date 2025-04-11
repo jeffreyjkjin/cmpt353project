@@ -184,8 +184,8 @@ def computeGlicko(fights, fighters):
 def calculate_totals(df):
     # Sum total for all rounds
     for stat in totals_columns:
-        df[f'sum_red_{stat}'] = df[[col for col in df.columns if f'red_{stat}' in col]].sum(axis=1)
-        df[f'sum_blue_{stat}'] = df[[col for col in df.columns if f'blue_{stat}' in col]].sum(axis=1)
+        df[f'red_sum_{stat}'] = df[[col for col in df.columns if f'red_{stat}' in col]].sum(axis=1)
+        df[f'blue_sum_{stat}'] = df[[col for col in df.columns if f'blue_{stat}' in col]].sum(axis=1)
 
     return df
 
@@ -193,22 +193,22 @@ def calculate_percentages(df):
     # Calculates Percentages for stats with landed & attempts
     for stat in percents_columns:
         # For red stats
-        df[f'red_{stat}_pct'] = df[f'sum_red_{stat}_lnd'] / df[f'sum_red_{stat}_att']
+        df[f'red_{stat}_pct'] = df[f'red_sum_{stat}_lnd'] / df[f'red_sum_{stat}_att']
         # Set to 0 if division results in NaN or if sum_red_{stat}_att is 0
-        df[f'red_{stat}_pct'] = df[f'red_{stat}_pct'].where(df[f'sum_red_{stat}_att'] != 0, 0)
+        df[f'red_{stat}_pct'] = df[f'red_{stat}_pct'].where(df[f'red_sum_{stat}_att'] != 0, 0)
 
         # For blue stats
-        df[f'blue_{stat}_pct'] = df[f'sum_blue_{stat}_lnd'] / df[f'sum_blue_{stat}_att']
+        df[f'blue_{stat}_pct'] = df[f'blue_sum_{stat}_lnd'] / df[f'blue_sum_{stat}_att']
         # Set to 0 if division results in NaN or if avg_blue_{stat}_att is 0
-        df[f'blue_{stat}_pct'] = df[f'blue_{stat}_pct'].where(df[f'sum_blue_{stat}_att'] != 0, 0)
+        df[f'blue_{stat}_pct'] = df[f'blue_{stat}_pct'].where(df[f'blue_sum_{stat}_att'] != 0, 0)
     
     return df
 
 def calculate_averages(df):
     # calculate per round stats
     for stat in averages_columns:
-        df[f'avg_red_{stat}'] = df[f'sum_red_{stat}'] / df['round']
-        df[f'avg_blue_{stat}'] = df[f'sum_blue_{stat}'] / df['round']
+        df[f'red_avg_{stat}'] = df[f'red_sum_{stat}'] / df['round']
+        df[f'blue_avg_{stat}'] = df[f'blue_sum_{stat}'] / df['round']
     return df
 
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
