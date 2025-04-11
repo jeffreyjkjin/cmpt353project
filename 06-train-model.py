@@ -12,15 +12,19 @@ import joblib
 #       save weights for model and as well training/validation set scores
 
 def stance_to_num(stance):
-    if (stance == 'Orthodox'):
-        return 0
-    return 1
+    """ Convert stance string to numeric """
+    stance_mapping = {'Orthodox': 1, 'Southpaw': 2, 'Switch': 3}
+    return stance_mapping.get(stance, 0)
 
 def train_svm(X_train, y_train, X_test, y_test):
     # Scale Data
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)  # Fit and transform on training data
     X_test_scaled = scaler.transform(X_test)  # Only transform the test data
+    
+    # Transform back to DataFrame to keep the column names
+    X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+    X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test.columns)
 
     # Prefound best parameters
     best_params = {
@@ -41,7 +45,7 @@ def train_svm(X_train, y_train, X_test, y_test):
     r2_svr = r2_score(y_test, y_pred_svr)
     print(f"Support Vector Machine (SVM) R² (tuned): {r2_svr}")
 
-    return mse_svr, r2_svr, svr  # Return the trained model
+    return mse_svr, r2_svr, svr, scaler  # Return the trained model
 
 
 def main(fights, fighters, model, num_runs):
@@ -54,16 +58,13 @@ def main(fights, fighters, model, num_runs):
     fight_df['red_stance'] = fight_df['red_stance'].apply(stance_to_num)
     fight_df['blue_stance'] = fight_df['blue_stance'].apply(stance_to_num)
 
-    X = fight_df.drop(columns=['red_result', 'date','red','blue'])
+    X = fight_df.drop(columns=['red_result', 'date','red','blue', 'exp_red_outcome'])
     y = fight_df['red_result']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    mse_svm, r2_svm, svr = train_svm(X_train, y_train, X_test, y_test)
+    mse_svm, r2_svm, svr, scaler = train_svm(X_train, y_train, X_test, y_test)
 
-    joblib.dump(svr, model)
-
-
-
+    joblib.dump((svr, X_train.columns.tolist(), scaler), model)
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
