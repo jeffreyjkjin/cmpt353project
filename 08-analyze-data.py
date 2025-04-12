@@ -30,6 +30,7 @@ def getTop10Fighters(fight_data, fighter_data):
     fighter_data.index = pd.RangeIndex(1, 11)
 
     print(fighter_data)
+    print('')
 
     fighter_data.to_csv('08-top-10-fighters.csv')
 
@@ -63,6 +64,7 @@ def ratingChangesOverTime(fight_data):
     res_norm = stats.normaltest(fighter_ratings['residual'])
 
     print(f'Normality test on residuals: {res_norm.pvalue}')
+    print('')
 
     # scatterplot of ratings over time
     plt.figure()
@@ -115,6 +117,7 @@ def stanceAdvantage(fight_data):
 
     print(f'Fighter stance and results contingency table')
     print(result_table)
+    print('')
 
 def strikersVersusGrapplers(fight_data, fighter_data):
     print('**Strikers Vs. Grapplers**')
