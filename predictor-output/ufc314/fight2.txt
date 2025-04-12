@@ -1,0 +1,4 @@
+Fighter          | Chance of Winning
+-----------------+------------------
+Michael Chandler | 14.000%          
+Paddy Pimblett   | 86.000%          

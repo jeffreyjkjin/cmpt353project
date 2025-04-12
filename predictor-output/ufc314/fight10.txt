@@ -1,0 +1,4 @@
+Fighter      | Chance of Winning
+-------------+------------------
+Marco Tulio  | 99.760%          
+Tresean Gore | 0.240%           
