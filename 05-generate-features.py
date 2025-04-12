@@ -111,7 +111,7 @@ def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
 # decays fighters rd
 def computeDecay(fighter):
     phi = fighter['rd']/173.7178
-    phi_p = math.sqrt(phi** + fighter['volatility']**2)
+    phi_p = math.sqrt(phi**2 + fighter['volatility']**2)
 
     return 173.7178 * phi_p    
 
