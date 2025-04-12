@@ -1,11 +1,16 @@
-# cmpt353project
+# UFC Fight Analysis and Prediction
+This repository contains all of our scripts we used to replicate our findings.
 
 ## Setup
 Before you begin, you must install all of the required dependencies to run our programs. Our programs use the following libraries:
 - BeautifulSoup
+- Matplotlib
 - Pandas
 - Requests
-- ...
+- SciPy
+- Seaborn
+- Scikit-Learn
+- Statsmodel
 
 To install the required libraries, use the following:
 ```
@@ -20,14 +25,14 @@ To scrape the fight data, use the following:
 python3 01-scrape-fight-data.py outputFights.csv
 python3 01-scrape-fight-data.py > fights # saves output to file as backup
 ```
-where `outputFights` is the name of the CSV where the scraped fight data will be stored. A sample output file is provided at `/sample-data/01-fight-data.csv`. We recommend using the sample fight data rather than scraping it again as it can take around 5-6 hours to fully scrape.
+where `outputFights` is the name of the CSV where the scraped fight data will be stored. A sample output file is provided at `sample-data/01-fight-data.csv`. We recommend using the sample fight data rather than scraping it again as it can take around 5-6 hours to fully scrape.
 
 To scrape the fighter data, use the following:
 ```
 python3 02-scrape-fighter-data.py outputFighters.csv
 python3 02-scrape-fighter-data.py > fighters # saves output to file as backup
 ```
-where `outputFighters` is the name of the CSV where the scraped fighter data will be stored. A sample output file is provided at `/sample-data/02-fighter-data.csv`.
+where `outputFighters` is the name of the CSV where the scraped fighter data will be stored. A sample output file is provided at `sample-data/02-fighter-data.csv`.
 
 ## Cleaning Data
 To clean the fight data, use the following:
@@ -35,14 +40,14 @@ To clean the fight data, use the following:
 python3 03-clean-fight-data.py inputFights.csv outputFights.csv
 python3 03-clean-fight-data.py sample-data/01-fight-data.csv outputFights.csv # use sample data
 ```
-where `inputFights` is the name of the CSV file containing the raw fight data and `outputFights` is where the cleaned fight data will be stored. A sample output file is provided at `/sample-data/03-fight-data.csv`.
+where `inputFights` is the name of the CSV file containing the raw fight data and `outputFights` is where the cleaned fight data will be stored. A sample output file is provided at `sample-data/03-fight-data.csv`.
 
 To clean the fighter data, use the following:
 ```
 python3 04-clean-fighter-data.py inputFighters outputFighters
 python3 04-clean-fighter-data.py sample-data/02-fighter-data.csv outputFighters # use sample data
 ```
-where `inputFighters` is the name of the CSV file containing the raw fighter data and `outputFights` is where the cleaned fighter data will be stored. A sample output file is provided at `/sample-data/04-fight-data.csv`.
+where `inputFighters` is the name of the CSV file containing the raw fighter data and `outputFights` is where the cleaned fighter data will be stored. A sample output file is provided at `sample-data/04-fight-data.csv`.
 
 ## Generating Features
 To generate features with both fight and fighter data, use the following:
@@ -50,10 +55,135 @@ To generate features with both fight and fighter data, use the following:
 python3 05-generate-features.py inputFights.csv inputFighters.csv outputFights.csv outputFighters.csv
 python3 05-generate-features.py sample-data/03-fight-data.csv sample-data/04-fighter-data.csv outputFights.csv outputFighters.csv # use sample data
 ```
-where `inputFights` and `inputFighters` are the names of the CSV files containing the cleaned fight and fighter data respectively, and `outputFights` and `outputFighters` are where the generated features will be stored. The sample outputs files are provided at `/sample-data/05-fight-data.csv` and `/sample-data/05-fighter-data.csv` accordingly.
+where `inputFights` and `inputFighters` are the names of the CSV files containing the cleaned fight and fighter data respectively, and `outputFights` and `outputFighters` are where the generated features will be stored. The sample outputs files are provided at `sample-data/05-fight-data.csv` and `sample-data/05-fighter-data.csv` accordingly.
 
 ## Training Model
+To train a model to predict UFC fights, use the following:
+```
+python3 06-train-model.py inputFights.csv outputResults.csv num_runs
+python3 06-train-model.py sample-data/05-fight-data.csv 06-model-results.csv num_runs # use sample data
+```
+where `inputFights` is the CSV file that contains the fighter data created from `05-generate-features.py`, `outputResults` is where the accuracies of each model are stored, and `num_runs` is the number of training runs for each model. The models with the highest accuracies will be saved as `svm.pkl`, `forest.pkl`, and `tree.pkl` in the root directory. Sample models and results are provided in the `sample-models/`. Sample output of this program is shown below:
+```
+**Best Models**
+     name  accuracy
+0  forest  0.887915
+1     svm  0.899812
+2    tree  0.844083
+```
 
 ## Predictor
+To predict a matchup between two fighters, use the following:
+```
+python3 07-predictor.py inputModel.pkl inputFighters.csv inputMatchup.txt
+python3 07-predictor.py inputModel.pkl inputFighters.csv inputMatchup.txt > results.txt # store output
+python3 07-predictor.py sample-models/svm.pkl sample-data/05-fighter-data.csv sample-ufc314-fights/fight1.txt # use sample inputs
+```
+where `inputModel.pkl` is the model generated by `06-train-model.py`, `inputFighters.csv` is the fighter data created from `05-generate-features.py`, and `inputMatchup` is a text file containing the fighters. This file should be set up as shown below:
+```
+fighter1
+fighter2
+```
+where `fighter1` and `fighter2` are the names of the fighters. Note that both fighters must have had UFC fights in the past or this script will not work. Sample matchups from UFC 314 are provided at `sample-ufc314-fights/`. Sample output of this script is shown below:
+```
+Fighter               | Chances of Winning
+----------------------+------------------
+Alexander Volkanovski | 63.690%
+Diego Lopes           | 36.310%
+```
 
 ## Analyzing Data
+To run our analysis on the fight and fighter data use the following:
+```
+python3 08-analyze-data.py inputFights.csv inputFighters.csv # use sample data
+python3 08-analyze-data.py sample-data/05-fight-data.csv sample-data/05-fighter-data.csv # use sample data
+```
+where `inputFights` and `inputFighters` are the names of the CSV files containing the fight and fighter data created from `05-generate-features.py` Sample output from this program is shown below:
+```
+***Collecting Top 10 Fighters by Rating***
+                 name       rating          rd
+1           Jon Jones  2312.869284   91.830033
+2        Ilia Topuria  2287.175421  142.205400
+3   Shavkat Rakhmonov  2251.347358  146.600931
+4   Dricus Du Plessis  2231.284154  121.150090
+5     Islam Makhachev  2230.430823  102.109995
+6        Alex Pereira  2194.637887  122.538319
+7          Ciryl Gane  2159.662020  116.297118
+8       Movsar Evloev  2157.214449  133.158057
+9     Khamzat Chimaev  2156.352086  132.669293
+10       Stipe Miocic  2146.229423   94.720552
+
+***Fighter Rating Changes Over Time***
+Linear Regression p-value: 1.8940217846174476e-11
+Correlation coefficient: 0.8781709494839995
+Normality test on residuals: 0.4215921920884964
+
+**Stance Advantage**
+Chi-Square p-value: 0.007510432686250244
+Fighter stance and results contingency table
+result     0.0  0.5   1.0   winrate
+stance                             
+Orthodox  6092   92  5892  0.487910
+Southpaw  1467   20  1625  0.522172
+Switch     426    6   468  0.520000
+
+**Strikers Vs. Grapplers**
+Chi-Square p-value: 1.9618497587712194e-26
+Fighter style and results contingency table
+result     0.0  0.5   1.0   winrate
+style                              
+grappler  3710   64  4400  0.538292
+striker   4275   54  3593  0.453547
+```
+
+## Analyzing Predictor
+To analyze the accuracies of the predictors, use the following:
+```
+python3 09-analyze-predictor.py inputAccuracies.csv
+python3 09-analyze-predictor.py inputAccuracies.csv > results.txt # save output
+python3 09-analyze-predictor.py sample-models/06-model-accuracy.csv # use sample data 
+```
+where `inputAccuracies` is the CSV containing the accuracies of the models computed by `06-train-model.py`. Sample output of this program is shown below:
+```
+Normal test on SVM Accuracy: 0.44909419881106216
+Normal test on Tree Accuracy: 0.6693369215948202
+Normal test on Forest Accuracy: 0.04375017745202866
+
+ANOVA p-value: 3.4188712374058245e-61
+
+Multiple Comparison of Means - Tukey HSD, FWER=0.05 
+====================================================
+group1 group2 meandiff p-adj   lower   upper  reject
+----------------------------------------------------
+forest    svm   0.0073 0.0012  0.0025  0.0121   True
+forest   tree   -0.055    0.0 -0.0598 -0.0502   True
+   svm   tree  -0.0623    0.0 -0.0671 -0.0575   True
+----------------------------------------------------
+```
+
+## Tournament Simulator
+To use the tournament simulator, use the following:
+```
+python3 10-tournament-simulator.py inputModel.pkl inputFighters.csv inputTourney.txt outputTourney.csv num_runs
+python3 10-tournament-simulator.py sample-models/svm.pkl sample-data/05-fighter-data.csv sample-tourney/tourney.txt outputTourney.csv num_runs # use sample data # use sample models and weights
+```
+where `inputModel` is a model generated by `06-train-model.py`, `inputFighters` is the CSV file containing fight data created by `05-generate-features.py`, `inputTourney` is a text file containing the fighters in the tourney, and `outputTourney` is where the results of the tournament will be stored. Sample models, fighter data, and tournaments are provided at `sample-models/`, `sample-data/05-fighter-data.csv`, and `sample-tourney/tourney.txt` respectively. The contents of the `inputTourney` should be as set up as shown below:
+```
+Islam Makhachev
+Arman Tsarukyan
+Charles Oliveira	
+Justin Gaethje	
+Max Holloway	
+Dustin Poirier	
+Dan Hooker	
+Michael Chandler	
+Mateusz Gamrot	
+Beneil Dariush	
+Renato Moicano	
+Rafael Fiziev	
+Paddy Pimblett	
+Benoit Saint Denis	
+Grant Dawson	
+Ignacio Bahamondes
+```
+Note that a tournament must have at least four fighters and the number of fighters must be a power of two.
