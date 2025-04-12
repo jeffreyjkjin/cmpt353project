@@ -1,12 +1,37 @@
-import sys
-import os
-import random
-import pandas as pd
 import joblib
 import math
+import os
+import pandas as pd
+import random
+import sys
+
 from itertools import combinations
 
-def compute_win_prob(fighter1, fighter2, model, column_list, scaler):
+columns = ['red_tot_str_pct', 'blue_tot_str_pct', 'red_td_pct', 'blue_td_pct', 'red_sig_str_pct', 
+           'blue_sig_str_pct', 'red_head_sig_str_pct', 'blue_head_sig_str_pct', 
+           'red_body_sig_str_pct', 'blue_body_sig_str_pct', 'red_leg_sig_str_pct', 
+           'blue_leg_sig_str_pct', 'red_dist_sig_str_pct', 'blue_dist_sig_str_pct', 
+           'red_clch_sig_str_pct', 'blue_clch_sig_str_pct', 'red_gnd_sig_str_pct', 
+           'blue_gnd_sig_str_pct', 'red_avg_kd', 'blue_avg_kd', 'red_avg_tot_str_lnd',
+           'blue_avg_tot_str_lnd', 'red_avg_td_lnd', 'blue_avg_td_lnd', 'red_avg_sub_att', 
+           'blue_avg_sub_att', 'red_avg_rev', 'blue_avg_rev', 'red_avg_ctrl', 'blue_avg_ctrl', 
+           'red_avg_sig_str_lnd', 'blue_avg_sig_str_lnd', 'red_avg_head_sig_str_lnd',
+           'blue_avg_head_sig_str_lnd', 'red_avg_body_sig_str_lnd', 'blue_avg_body_sig_str_lnd', 
+           'red_avg_leg_sig_str_lnd', 'blue_avg_leg_sig_str_lnd', 'red_avg_dist_sig_str_lnd',
+           'blue_avg_dist_sig_str_lnd', 'red_avg_clch_sig_str_lnd', 'blue_avg_clch_sig_str_lnd', 
+           'red_avg_gnd_sig_str_lnd', 'blue_avg_gnd_sig_str_lnd', 'exp_red_outcome', 'red_height',
+           'red_reach', 'red_stance', 'blue_height', 'blue_reach', 'blue_stance']
+
+# calculates probability that a fighter will beat their opponent
+# adapted from https://www.glicko.net/glicko/glicko.pdf
+def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
+    q = math.log(10)/400
+    g = 1/math.sqrt(1 + ((3*q**2) * (rd**2 + opp_rd**2)/(math.pi**2))) 
+    exp = (-g*(r - opp_r))/400
+
+    return 1/(1 + 10**exp)
+
+def compute_win_prob(fighter1, fighter2, model):
     """Returns the probability of fighter 1 winning"""
     fighter1 = fighter1.to_frame().T
     fighter2 = fighter2.to_frame().T
@@ -20,18 +45,18 @@ def compute_win_prob(fighter1, fighter2, model, column_list, scaler):
     
     # Concatenate the two fighters into a single DataFrame
     fighter_data = pd.concat([fighter1, fighter2], axis=1)
-    
-    fighter_data = fighter_data[column_list]
-    
-    # Scale the data
-    if scaler is not None:
-        fighter_data = scaler.transform(fighter_data)
-        # Convert back to DataFrame to keep the column names
-        fighter_data = pd.DataFrame(fighter_data, columns=column_list)
+            
+    fighter_data['exp_red_outcome'] = expectedGlickoOutcome(
+        fighter1['red_rating'].iloc[0], 
+        fighter1['red_rd'].iloc[0], 
+        fighter2['blue_rating'].iloc[0], 
+        fighter2['blue_rd'].iloc[0]
+    )
+
+    fighter_data = fighter_data[columns]
     
     # Predict the class probabilities then return the probability of fighter1 winning
     return model.predict_proba(fighter_data)[0][1]
-
 
 def generate_round_names(rounds):
     """Generate dynamic round names based on the number of fighters in the tournament."""
@@ -136,7 +161,7 @@ def main(model_path, fighter_data, input_dir, output_dir, num_simulations):
         return
     
     # Load the model
-    model, scaler, column_list = joblib.load(model_path)
+    model = joblib.load(model_path)
     
     # Load the fighter data
     df = pd.read_csv(fighter_data)
@@ -207,7 +232,7 @@ def main(model_path, fighter_data, input_dir, output_dir, num_simulations):
                     fighter2_data = fighters[fighters['name'] == fighter2].iloc[0]
                     
                     # Predict the winner
-                    prob_fighter1 = compute_win_prob(fighter1_data, fighter2_data, model, column_list, scaler)
+                    prob_fighter1 = compute_win_prob(fighter1_data, fighter2_data, model)
                     
                     # Store the probabilities in the dictionary (fighter1 vs fighter2)
                     matchups_probs[(fighter1, fighter2)] = prob_fighter1
