@@ -11,11 +11,14 @@ Before you begin, you must install all of the required dependencies to run our p
 - Seaborn
 - Scikit-Learn
 - Statsmodel
+- joblib
 
 To install the required libraries, use the following:
 ```
 pip3 install -r requirements.txt
 ```
+
+If the above method does not work, please install manually with `pip install <library>`
 
 ## Scraping Data
 All of our projects data is scraped from the official [UFC Stats](http://www.ufcstats.com/statistics/events/completed) website. We scraped data for every single UFC fight as well as the individual stats for each UFC fighter.
