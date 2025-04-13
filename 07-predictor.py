@@ -1,4 +1,3 @@
-import os
 import joblib
 import math
 import pandas as pd
@@ -53,53 +52,47 @@ def compute_win_prob(fighter1, fighter2, model):
     fighter_data = fighter_data[columns]
     
     # Predict the class probabilities then return the probability of fighter1 winning
-    return model.predict_proba(fighter_data)[0][0]
+    return model.predict_proba(fighter_data)[0][1]
 
-def main(model_path, fighter_data, matchup_dir):
+def main(model_path, fighter_data, matchup):
     # Load the model
     model = joblib.load(model_path)
     
     # Load the fighter data
     df = pd.read_csv(fighter_data)
+    
+    names = []
 
-    # Iterate over all files in the specified directory
-    for filename in os.listdir(matchup_dir):
-        if filename.endswith(".txt"):  # Assuming matchup files are text files
-            matchup_file = os.path.join(matchup_dir, filename)
-            print("\n")
-            
-            names = []
-            # Open the matchup file and read line by line
-            with open(matchup_file, 'r') as file:
-                names.extend([file.readline().strip(), file.readline().strip()])
-                
-            if len(names) != 2:
-                print(f"Invalid number of fighters in {filename}")
-                continue            
+    # Open the file and read line by line
+    with open(matchup, 'r') as file:
+        names.extend([file.readline().strip(), file.readline().strip()])
 
-            unrecognized = [name for name in names if name not in df['name'].values]
+    if len(names) != 2:
+        print("Invalid number of fighters")
+        return            
+    
+    unrecognized = [name for name in names if name not in df['name'].values]
 
-            # Print unrecognized names
-            if unrecognized:
-                print(f"Cannot find the following fighters in {filename}: {', '.join(unrecognized)}")
-                continue
+    # Print unrecognized names
+    if unrecognized:
+        print(f"Cannot find the following fighters: {', '.join(unrecognized)}")
+        return
 
-            # Get the row data for the fighters
-            fighter1 = df[df['name'] == names[0]].iloc[0]
-            fighter2 = df[df['name'] == names[1]].iloc[0]
-                        
-            # Predict the winner
-            prob_f1 = compute_win_prob(fighter1, fighter2, model)
-            prob_f2 = 1 - prob_f1
+    # Get the row data for the fighters
+    fighter1 = df[df['name'] == names[0]].iloc[0]
+    fighter2 = df[df['name'] == names[1]].iloc[0]
+                    
+    # Predict the winner
+    prob_f1 = compute_win_prob(fighter1, fighter2, model)
+    prob_f2 = 1 - prob_f1
 
-            # Print results
-            max_len = max(len(names[0]), len(names[1]))
+    # print results
+    max_len = max(len(names[0]), len(names[1]))
 
-            print(f'Fighter{" " * (max_len-6)}| Chances of Winning')
-            print(f'{"-" * (max_len+1)}+------------------')
-            print(f'{names[0]}{" " * (max_len+1-len(names[0]))}| {prob_f1*100:.3f}%')
-            print(f'{names[1]}{" " * (max_len+1-len(names[1]))}| {prob_f2*100:.3f}%')
-
+    print(f'Fighter{" " * (max_len-6)}| Chances of Winning')
+    print(f'{"-" * (max_len+1)}+------------------')
+    print(f'{names[0]}{" " * (max_len+1-len(names[0]))}| {prob_f1*100:.3f}%')
+    print(f'{names[1]}{" " * (max_len+1-len(names[1]))}| {prob_f2*100:.3f}%')
             
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2], sys.argv[3])
