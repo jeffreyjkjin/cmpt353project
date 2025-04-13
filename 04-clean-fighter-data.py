@@ -1,3 +1,11 @@
+"""
+Cleans up UFC Fighter Stats CSV.
+- Converts height/reach to inches
+- Fills missing values using logic or averages
+- Standardizes stances and drops unneeded data
+- Handles naming collisions (e.g., Bruno Silva)
+"""
+
 import pandas as pd
 import sys
 

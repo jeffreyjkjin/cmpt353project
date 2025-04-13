@@ -1,3 +1,10 @@
+"""
+Trains and evaluates SVM, Decision Tree, and Random Forest classifiers on UFC fight data.
+- Removes draws and unnecessary columns.
+- Repeats training multiple times per model
+- Selects the best run (highest accuracy) for each model
+- Saves the best model to disk using joblib
+"""
 import joblib
 import sys
 import pandas as pd
@@ -10,6 +17,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
+
+# SVM Decision Tree & Random Forest best parameters found in testing
 def train_svm_classifier(X_train, y_train, X_test, y_test):
     model = make_pipeline(
         StandardScaler(),
@@ -49,10 +58,10 @@ def train_random_forest_classifier(X_train, y_train, X_test, y_test):
 def main(fights, model_results, num_runs):
     fight_df = pd.read_csv(fights)
 
-    # remove draws
+    # Remove draws from the dataset (only keep win/loss)
     fight_df = fight_df[fight_df['red_result'] != 0.5]
 
-    # drop columns that can't be used to train on
+    # Drop columns not usable as features for training
     drop_cols = [
         'red_result', 'date', 'red', 'blue', 'red_rating', 'blue_rating', 'blue_rd', 'red_rd', 
         'new_red_rating', 'new_blue_rating'
@@ -63,6 +72,7 @@ def main(fights, model_results, num_runs):
 
     models = [train_svm_classifier, train_decision_tree_classifier, train_random_forest_classifier]
 
+    # Train each model multiple times and record results
     results = []
     for model in models:
         for _ in range(0, int(num_runs)):
@@ -70,18 +80,18 @@ def main(fights, model_results, num_runs):
 
             results.append(model(X_train, y_train, X_test, y_test))
 
-    # store results in dataframe 
+    # Store results in dataframe 
     model_df = pd.DataFrame(results, columns=['name', 'accuracy', 'model'])
     model_df.drop('model', axis=1).to_csv(model_results, index=False)   
 
-    # get best models
+    # Identify the best run (highest accuracy) for each model
     best_model_df = model_df.loc[model_df.groupby('name')['accuracy'].idxmax()]
     best_model_df = best_model_df.reset_index().drop('index', axis=1)
 
     print("**Best Models**")
     print(best_model_df.drop('model', axis=1))
 
-    # save models
+    # Save the best models to .pkl files
     for _, model in best_model_df.iterrows():
         name = model['name']
 

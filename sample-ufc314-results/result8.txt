@@ -1,0 +1,4 @@
+Fighter      | Chances of Winning
+-------------+------------------
+Jim Miller   | 98.297%
+Chase Hooper | 1.703%

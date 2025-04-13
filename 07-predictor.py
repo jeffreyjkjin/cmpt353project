@@ -1,3 +1,10 @@
+"""
+Predicts the outcome of a fight between two UFC fighters using a trained model.
+- Loads a saved model and preprocessed fighter stats
+- Reads two fighter names from a file
+- Computes win probabilities based on fighter stats and Glicko ratings
+- Outputs formatted win probabilities
+"""
 import joblib
 import math
 import pandas as pd
@@ -19,8 +26,8 @@ columns = ['red_tot_str_pct', 'blue_tot_str_pct', 'red_td_pct', 'blue_td_pct', '
            'red_reach', 'red_stance', 'blue_height', 'blue_reach', 'blue_stance']
 
 def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
-    # calculates probability that a fighter will beat their opponent
-    # adapted from https://www.glicko.net/glicko/glicko.pdf
+    # Calculates probability that a fighter will beat their opponent
+    # Adapted from https://www.glicko.net/glicko/glicko.pdf
     q = math.log(10)/400
     g = 1/math.sqrt(1 + ((3*q**2) * (rd**2 + opp_rd**2)/(math.pi**2))) 
     exp = (-g*(r - opp_r))/400
@@ -63,7 +70,7 @@ def main(model_path, fighter_data, matchup):
     
     names = []
 
-    # Open the file and read line by line
+    # Read fighter names from input file (2 lines expected)
     with open(matchup, 'r') as file:
         names.extend([file.readline().strip(), file.readline().strip()])
 
@@ -71,6 +78,7 @@ def main(model_path, fighter_data, matchup):
         print("Invalid number of fighters")
         return            
     
+    # Verify both fighters are present in the dataset
     unrecognized = [name for name in names if name not in df['name'].values]
 
     # Print unrecognized names
@@ -82,11 +90,11 @@ def main(model_path, fighter_data, matchup):
     fighter1 = df[df['name'] == names[0]].iloc[0]
     fighter2 = df[df['name'] == names[1]].iloc[0]
                     
-    # Predict the winner
+    # Calculate probability that fighter1 wins
     prob_f1 = compute_win_prob(fighter1, fighter2, model)
     prob_f2 = 1 - prob_f1
 
-    # print results
+    # Print results
     max_len = max(len(names[0]), len(names[1]))
 
     print(f'Fighter{" " * (max_len-6)}| Chances of Winning')

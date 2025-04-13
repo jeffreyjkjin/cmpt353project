@@ -1,0 +1,4 @@
+Fighter         | Chances of Winning
+----------------+------------------
+Yan Xiaonan     | 37.284%
+Virna Jandiroba | 62.716%

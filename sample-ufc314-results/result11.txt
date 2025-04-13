@@ -1,0 +1,4 @@
+Fighter      | Chances of Winning
+-------------+------------------
+Sumudaerji   | 2.387%
+Mitch Raposo | 97.613%

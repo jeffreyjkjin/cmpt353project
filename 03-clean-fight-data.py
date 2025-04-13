@@ -1,3 +1,11 @@
+"""
+Cleans up UFC Fight Data CSV.
+- Standardizes fight formats
+- Converts win/loss/draw to numerical values
+- Computes fight durations in seconds
+- Handles naming collisions (Bruno Silva)
+"""
+
 import pandas as pd
 import sys
 import re
