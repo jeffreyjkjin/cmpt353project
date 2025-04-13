@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
 
 def train_svm_classifier(X_train, y_train, X_test, y_test):
     model = make_pipeline(
@@ -21,16 +21,16 @@ def train_svm_classifier(X_train, y_train, X_test, y_test):
 
     return ['svm', accuracy_score(y_test, y_pred), model]
 
-def train_decision_tree_classifier(X_train, y_train, X_test, y_test):
+def train_naive_bayes_classifier(X_train, y_train, X_test, y_test):
     model = make_pipeline(
         StandardScaler(),
-        DecisionTreeClassifier(max_depth=10, min_samples_split=2, min_samples_leaf=1)
+        GaussianNB()
     )
     
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     
-    return ['tree', accuracy_score(y_test, y_pred), model]
+    return ['nb', accuracy_score(y_test, y_pred), model]
 
 def train_random_forest_classifier(X_train, y_train, X_test, y_test):
     model = make_pipeline(
@@ -61,7 +61,7 @@ def main(fights, model_results, num_runs):
     X = fight_df.drop(columns=drop_cols)
     y = fight_df['red_result']
 
-    models = [train_svm_classifier, train_decision_tree_classifier, train_random_forest_classifier]
+    models = [train_svm_classifier, train_naive_bayes_classifier, train_random_forest_classifier]
 
     results = []
     for model in models:
