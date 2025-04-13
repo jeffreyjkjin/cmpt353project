@@ -1,3 +1,11 @@
+"""
+Calculates Glicko2 ratings and career stats for UFC fighters.
+- Updates fighter ratings after each fight
+- Computes probability of win and rating decay
+- Summarizes career averages and strike percentages
+- Outputs enriched fight and fighter datasets
+"""
+
 import math
 import pandas as pd
 import sys
@@ -28,7 +36,8 @@ blue_columns = ['blue' , 'blue_height', 'blue_reach', 'blue_stance']
 # adapted from https://www.glicko.net/glicko/glicko2.pdf
 # assumes every fight changes rating; does not have concept of rating period
 def updateGlicko(r, rd, opp_r, opp_rd, v, result):
-    tau = 0.5 # volatility contraint constant
+    # step 1: Set volatility contraint constant
+    tau = 0.5 
 
     # step 2: convert fighter stats to glicko2 scale
     mu = (r - 1500)/173.7178
@@ -99,8 +108,8 @@ def updateGlicko(r, rd, opp_r, opp_rd, v, result):
 
     return new_r, new_rd, sigma_p
 
-# calculates probability that a fighter will beat their opponent
-# adapted from https://www.glicko.net/glicko/glicko.pdf
+# Calculates probability that a fighter will beat their opponent
+# Adapted from https://www.glicko.net/glicko/glicko.pdf
 def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
     q = math.log(10)/400
     g = 1/math.sqrt(1 + ((3*q**2) * (rd**2 + opp_rd**2)/(math.pi**2))) 
@@ -108,15 +117,16 @@ def expectedGlickoOutcome(r, rd, opp_r, opp_rd):
 
     return 1/(1 + 10**exp)
 
-# decays fighters rd
+# Decays fighters rd
 def computeDecay(fighter):
     phi = fighter['rd']/173.7178
     phi_p = math.sqrt(phi**2 + fighter['volatility']**2)
 
     return 173.7178 * phi_p    
 
+# Initializes and updates Glicko2 ratings across all fights
 def computeGlicko(fights, fighters):
-    # create glicko columns
+    # Create glicko columns
     fighters[['rating', 'rd', 'volatility', 'last_fight']] = 0, 0, 0, None
     new_fight_cols = ['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome', 
                       'new_red_rating', 'new_blue_rating']
@@ -125,12 +135,12 @@ def computeGlicko(fights, fighters):
     start_date = pd.to_datetime(fights.iloc[0]['date'])
     end_date = start_date + pd.Timedelta(days=365)
     
-    # calculate and update glicko2 ratings from each fight for both fighters
+    # Calculate and update glicko2 ratings from each fight for both fighters
     num_fights = len(fights)
     for i in range(0, num_fights):
         fight = fights.iloc[i]
 
-        # compute decay for fighters who haven't fought in last year once end_date has passed 
+        # Compute decay for fighters who haven't fought in last year once end_date has passed 
         if (pd.to_datetime(fight['date']) > end_date):
             inactive = (fighters['last_fight'] != None) & (pd.to_datetime(fighters['last_fight']) < start_date)
             fighters.loc[inactive, 'rd'] = fighters.apply(computeDecay, axis=1)
@@ -138,7 +148,7 @@ def computeGlicko(fights, fighters):
             start_date = end_date
             end_date += pd.Timedelta(days=365)
 
-        # get glicko stats for both fighters
+        # Get glicko stats for both fighters
         red = fight['red']
         blue = fight['blue']
 
@@ -153,20 +163,20 @@ def computeGlicko(fights, fighters):
         blue_rd = fighters[fighters['name'] == blue]['rd'].iloc[0]
         blue_v = fighters[fighters['name'] == blue]['volatility'].iloc[0]
 
-        # set default values for fighters if it is their first fight
+        # Set default values for fighters if it is their first fight
         if (red_r == 0):
             red_r, red_rd, red_v = 1500, 350, 0.06
 
         if (blue_r == 0):
             blue_r, blue_rd, blue_v = 1500, 350, 0.06
 
-        # add glicko rating before fight to compute outcome odds
+        # Add glicko rating before fight to compute outcome odds
         fights.loc[i, ['red_rating', 'red_rd']] = red_r, red_rd
         fights.loc[i, ['blue_rating', 'blue_rd']] = blue_r, blue_rd
 
         fights.loc[i, 'exp_red_outcome'] = expectedGlickoOutcome(red_r, red_rd, blue_r, blue_rd)
 
-        # compute new glicko ratings
+        # Compute new glicko ratings
         fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = updateGlicko(
             red_r, red_rd, blue_r, blue_rd, red_v, red_result
         )
@@ -175,11 +185,11 @@ def computeGlicko(fights, fighters):
             blue_r, blue_rd, red_r, red_rd, blue_v, blue_result
         )
 
-        # add new glicko rating to fight
+        # Add new glicko rating to fight
         fights.loc[i, 'new_red_rating'] = fighters[fighters['name'] == red]['rating'].iloc[0]
         fights.loc[i, 'new_blue_rating'] = fighters[fighters['name'] == blue]['rating'].iloc[0]
 
-        # set last fight date
+        # Set last fight date
         fighters.loc[fighters['name'] == red, 'last_fight'] = fight['date']
         fighters.loc[fighters['name'] == blue, 'last_fight'] = fight['date']
 
@@ -238,22 +248,23 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = pd.read_csv(in_dir1)
     fighters = pd.read_csv(in_dir2)
 
-    # generate fight features
+    # Generate fight features
     fight_data = calculate_totals(fight_data) 
     fight_data = calculate_percentages(fight_data) 
     fight_data = calculate_averages(fight_data)
 
-    # drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
+    # Drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
     fight_data = fight_data.drop(fight_data.columns[range(4, 270)], axis=1)
 
+    # Update fighter ratings after each fight using Glicko2 algorithm
     fight_data, fighters = computeGlicko(fight_data, fighters)
 
     career_stats = calculate_career_stats(fight_data) 
 
-    # merge career stats with fighters
+    # Merge career stats with fighters
     fighters = fighters.merge(career_stats, on='name')
 
-    # merge individual fighter stats with fight data
+    # Merge individual fighter stats with fight data
     fight_data = fight_data.merge(
         fighters[['name', 'height', 'reach', 'stance']].set_axis(red_columns, axis=1), 
         on='red' 

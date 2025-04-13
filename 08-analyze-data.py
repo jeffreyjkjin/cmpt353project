@@ -1,3 +1,10 @@
+"""
+Performs analysis and visualization on UFC fighter data.
+- Identifies top 10 fighters by rating
+- Tracks rating trends over time
+- Analyzes stance-based win advantage
+- Compares win rates of strikers vs. grapplers
+"""
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn
@@ -11,7 +18,7 @@ def getTop10Fighters(fight_data, fighter_data):
     print('***Collecting Top 10 Fighters by Rating***')
     fighter_data = fighter_data.sort_values(by='rating', ascending=False)
 
-    # get most recent fight for all fighters
+    # Get most recent fight for all fighters
     red_fights = fight_data[['date', 'red']]
     red_fights.columns = ['last_fight', 'name']
     blue_fights = fight_data[['date', 'blue']]
@@ -21,7 +28,7 @@ def getTop10Fighters(fight_data, fighter_data):
     recent_fights = recent_fights.sort_values(by='last_fight', ascending=False)
     recent_fights = recent_fights.groupby('name').first()
 
-    # only select top 10 fighters who have fought in the last year
+    # Only select top 10 fighters who have fought in the last year
     fighter_data = fighter_data.join(recent_fights, on='name')
     within_year = pd.to_datetime(fighter_data['last_fight']) > pd.Timestamp.now()-pd.Timedelta(days=365)
     fighter_data = fighter_data[within_year]
@@ -37,13 +44,13 @@ def getTop10Fighters(fight_data, fighter_data):
 def ratingChangesOverTime(fight_data):
     print('***Fighter Rating Changes Over Time***')
 
-    # collect all fighters and ratings
+    # Collect all fighters and ratings
     red_fighters = fight_data[['date', 'red', 'new_red_rating']]
     red_fighters.columns = ['date', 'name', 'rating']
     blue_fighters = fight_data[['date', 'blue', 'new_blue_rating']]
     blue_fighters.columns = ['date', 'name', 'rating']
 
-    # average fighters ratings at the end of the year
+    # Average fighters ratings at the end of the year
     fighter_ratings = pd.concat([red_fighters, blue_fighters])
     fighter_ratings = fighter_ratings.sort_values('date', ascending=False)
     fighter_ratings['year'] = pd.to_datetime(fighter_ratings['date']).dt.year
@@ -51,7 +58,7 @@ def ratingChangesOverTime(fight_data):
 
     fighter_ratings = fighter_ratings.groupby('year').mean('rating').reset_index()
 
-    # linear regression
+    # Perform linear regression on yearly average ratings
     reg = stats.linregress(fighter_ratings['year'], fighter_ratings['rating'])
 
     print(f'Linear Regression p-value: {reg.pvalue}')
@@ -60,13 +67,13 @@ def ratingChangesOverTime(fight_data):
     fighter_ratings['prediction'] = reg.slope * fighter_ratings['year'] + reg.intercept
     fighter_ratings['residual'] = fighter_ratings['rating'] - fighter_ratings['prediction']
 
-    # normality on residuals
+    # Normality on residuals
     res_norm = stats.normaltest(fighter_ratings['residual'])
 
     print(f'Normality test on residuals: {res_norm.pvalue}')
     print('')
 
-    # scatterplot of ratings over time
+    # Plot scatterplot of ratings over time
     plt.figure()
     plt.xlabel('Year')
     plt.ylabel('Rating')
@@ -76,7 +83,7 @@ def ratingChangesOverTime(fight_data):
     plt.legend(['Ratings', 'Linear Regression'])
     plt.savefig('08-ratings-over-time.png')
 
-    # histogram
+    # Plot histogram distribution of residuals to check normality
     plt.figure()
     plt.xlabel('Residuals')
     plt.ylabel('Frequency')
@@ -95,7 +102,7 @@ def stanceAdvantage(fight_data):
         3: 'Switch'
     }
 
-    # collect fighter stances and results
+    # Collect fighter stances and results
     red_results = fight_data[['red_stance', 'red_result']]
     red_results.columns = ['stance', 'result']
     
@@ -106,7 +113,7 @@ def stanceAdvantage(fight_data):
     fight_results = pd.concat([red_results, blue_results])
     fight_results['stance'] = fight_results['stance'].apply(lambda s: stance_dict[s])
 
-    # chi square test
+    # Run chi-square test on stance vs. win/loss outcomes
     result_table = pd.crosstab(fight_results['stance'], fight_results['result'])
     chi2 = stats.chi2_contingency(result_table)
 
@@ -122,12 +129,12 @@ def stanceAdvantage(fight_data):
 def strikersVersusGrapplers(fight_data, fighter_data):
     print('**Strikers Vs. Grapplers**')
 
-    # determine which fighters are grapplers; default is striker
+    # Label fighters as grapplers if high takedown/control stats, default is striker
     fighter_data['style'] = 'striker'
     grappler_filter = (fighter_data['avg_td_lnd'] > 0.3) & (fighter_data['avg_ctrl'] > 30)
     fighter_data.loc[grappler_filter, 'style'] = 'grappler'
 
-    # collect fighter results
+    # Collect fighter results
     red_results = fight_data[['red', 'red_result']]
     red_results.columns = ['name', 'result']
     
@@ -137,16 +144,16 @@ def strikersVersusGrapplers(fight_data, fighter_data):
 
     fight_results = pd.concat([red_results, blue_results])
 
-    # add fight styles to results
+    # Add fight styles to results
     fight_results = fight_results.merge(fighter_data[['name', 'style']], on='name')
 
-    # chi square test
+    # Chi square test
     result_table = pd.crosstab(fight_results['style'], fight_results['result'])
     chi2 = stats.chi2_contingency(result_table)
 
     print(f'Chi-Square p-value: {chi2.pvalue}')
 
-    # win rates of each style
+    # Win rates of each style
     result_table['winrate'] = result_table[1.0] / result_table.sum(axis=1)
 
     print(f'Fighter style and results contingency table')

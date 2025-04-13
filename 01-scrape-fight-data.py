@@ -1,9 +1,15 @@
+"""
+Scrapes all UFC fight data from UFCStats.com
+For each fight on each card, it collects fighter names, results, fight metadata,
+and per-round stats, and saves them to a CSV file.
+"""
+
 import pandas as pd
 import requests
 import sys
 
 from bs4 import BeautifulSoup
-
+# Columns to scrape for fight data
 columns = ['date', 'red', 'blue', 'red_result', 'blue_result', 'outcome', 'round', 'time', 
            'format', 'r1_red_kd', 'r1_blue_kd', 'r1_red_tot_str_lnd', 'r1_red_tot_str_att', 
            'r1_blue_tot_str_lnd', 'r1_blue_tot_str_att', 'r1_red_td_lnd', 'r1_red_td_att', 
@@ -73,23 +79,23 @@ columns = ['date', 'red', 'blue', 'red_result', 'blue_result', 'outcome', 'round
 
 padding = [None for _ in range(0, 44)]
 
-# scrapes fight data from the provided URL
+# Scrapes fight data from the provided URL
 def scrapeFight(URL, date):
     page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
 
     data = [date]
 
-    # names of fighters
+    # Names of fighters
     fighters = soup.find_all('div', class_='b-fight-details__person')
     red_name = fighters[0].find('a', class_='b-link b-fight-details__person-link').text.strip()
     blue_name = fighters[1].find('a', class_='b-link b-fight-details__person-link').text.strip()
 
-    # result for each fighter 
+    # Result for each fighter 
     red_result = fighters[0].find('i').text.strip()
     blue_result = fighters[1].find('i').text.strip()
 
-    # win method, round, time, format
+    # Win method, round, time, format
     details = soup.find('div', class_='b-fight-details__content')
     method = details.find('i', class_='b-fight-details__text-item_first').find_all('i')[1].text.strip()
     details = details.find_all('i', class_='b-fight-details__text-item')
@@ -114,12 +120,12 @@ def scrapeFight(URL, date):
 
     totals = sections[2].find_all('tr', class_='b-fight-details__table-row')[1:]
     strikes = sections[4].find_all('tr', class_='b-fight-details__table-row')[1:]
-    # totals should be same size as strikes
+    # Totals should be same size as strikes
     for i in range(len(totals)):
         total_row = totals[i].find_all('td', class_='b-fight-details__table-col')
         strike_row = strikes[i].find_all('td', class_='b-fight-details__table-col')
 
-        # get all stats per round
+        # Get all stats per round
         kd = total_row[1].text.strip().split(' ')
         red_kd = kd[0].strip()
         blue_kd = kd[-1].strip()
@@ -202,29 +208,29 @@ def scrapeFight(URL, date):
                      blue_clinch_str_att, red_grn_str_lnd, red_grn_str_att, blue_grn_str_lnd,
                      blue_grn_str_att])
 
-    # pad data with dummy values if fight is not 5 rounds
+    # Pad data with dummy values if fight is not 5 rounds
     while (len(data) < 229): data.extend(padding)
 
     print(data)
 
     return data
 
-# scrapes every fight from the provided URL of a UFC card
+# Scrapes every fight from the provided URL of a UFC card
 def scrapeCard(URL):
     page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
 
-    # get url for each fight
+    # Get url for each fight
     fight_table = soup.find('tbody')
     fights = fight_table.find_all('td', class_='b-fight-details__table-col b-fight-details__table-col_style_align-top')
 
-    # get fight date
+    # Get fight date
     details = soup.find('li', class_='b-list__box-list-item')
     date = details.text.strip()[5:].lstrip()
 
     card_data = []
     for fight in fights:
-        # get first url only if fight is a draw or no contest
+        # Get first url only if fight is a draw or no contest
         fight_link = fight.find('a')['href']
 
         card_data.append(scrapeFight(fight_link, date))
@@ -232,7 +238,7 @@ def scrapeCard(URL):
     return card_data
 
 def main(out_dir):
-    # scrape link and date for every ufc event card
+    # Scrape link and date for every ufc event card
     # URL = 'http://ufcstats.com/statistics/events/completed' # last ~24 cards
     URL = 'http://ufcstats.com/statistics/events/completed?page=all' # every card
     page = requests.get(URL)

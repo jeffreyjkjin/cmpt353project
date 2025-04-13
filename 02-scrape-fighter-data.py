@@ -1,16 +1,22 @@
+"""
+Scrapes fighter statistics (height, weight, reach, stance, record) from UFCStats.com.
+Loops through all fighters A-Z and saves the data to a CSV.
+"""
+
 import pandas as pd
 import requests
 import sys
 
 from bs4 import BeautifulSoup
 
+# Fighter Stats columns to scrape
 columns = ['name', 'height', 'weight', 'reach', 'stance', 'wins', 'losses', 'draws']
 
-# scrape individual fighter stats for every ufc fighter
+# Scrape individual fighter stats for every ufc fighter
 def main(out_dir):
     data = []
 
-    # loop through every ufc fighter page alphabetically
+    # Loop through every ufc fighter page alphabetically
     for i in range(0, 26):
         letter = chr(ord('a')+i)
         URL = f'http://ufcstats.com/statistics/fighters?char={letter}&page=all'
@@ -22,7 +28,7 @@ def main(out_dir):
         for fighter in  fighters:
             stats = fighter.find_all('td', class_='b-statistics__table-col')
             
-            # get stats
+            # Get fighter stats
             name = f'{stats[0].text.strip()} {stats[1].text.strip()}'.strip()
             ht = stats[3].text.strip()
             wt = stats[4].text.strip()

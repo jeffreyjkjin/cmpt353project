@@ -1,3 +1,11 @@
+"""
+Simulates a single-elimination UFC-style tournament using a trained predictive model.
+- Computes pairwise win probabilities between fighters
+- Simulates multiple tournaments
+- Tracks how often each fighter reaches each round
+- Outputs results as win probability percentages
+"""
+
 import math
 import random
 import joblib
@@ -50,6 +58,7 @@ def simulate_tournament(prob_map, fighters, num_simulations):
 
         for round_num in range(rounds):
             next_round = []
+            # Track which round the winner reaches
             label = round_names[rounds - round_num - 1]
             for i in range(0, len(bracket), 2):
                 f1, f2 = bracket[i], bracket[-1 - i]
@@ -78,7 +87,7 @@ def write_output(counts, output, num_sims):
     # Build header
     header = ["fighter"] + all_labels
 
-    # Create all rows
+    # Build rows of fighter stats for CSV output
     rows = []
     for fighter in sorted(results.keys()):
         row = [fighter]
@@ -86,7 +95,7 @@ def write_output(counts, output, num_sims):
             row.append(results[fighter].get(label, "0.000%"))
         rows.append(row)
 
-    # turn into dataframe and save
+    # Turn into dataframe and save
     df = pd.DataFrame(rows, columns=header)
     df = df.sort_values(by='win_tourney', ascending=False)
 
@@ -145,7 +154,7 @@ def main(model, fighters, tournament, results, num_sims):
         # Store the probabilities in the dictionary (fighter1 vs fighter2)
         matchups_probs[(fighter1, fighter2)] = prob_fighter1
 
-    # Simulate the tournament
+    # Run tournament simulations and track round advancement for each fighter
     counts = simulate_tournament(matchups_probs, fighters['name'].tolist(), num_sims)
 
     write_output(counts, results, num_sims)  

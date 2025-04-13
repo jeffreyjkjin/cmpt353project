@@ -1,3 +1,10 @@
+"""
+Performs model comparison using accuracy results.
+- Generates histograms of model accuracy distributions
+- Tests normality and runs one-way ANOVA
+- Conducts Tukey's post-hoc test for pairwise model comparison
+"""
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn
@@ -11,12 +18,12 @@ seaborn.set_theme()
 def main(predictor_results):
     df = pd.read_csv(predictor_results)
 
-    # separate models
+    # Separate Models (SVM, Decision Tree, Random Forest)
     svm = df[df['name'] == 'svm']['accuracy']
     tree = df[df['name'] == 'tree']['accuracy']
     forest = df[df['name'] == 'forest']['accuracy']
 
-    # create histogram of model accuracies
+    # Plot histogram of model accuracies
     plt.figure()
     plt.hist(svm, color='r', alpha=0.5)
     plt.hist(tree, color='g', alpha=0.5)
@@ -27,16 +34,17 @@ def main(predictor_results):
     plt.title('Frequency of Model Accuracies')
     plt.savefig('09-model-accuracy.png')
 
-    # normal test on classifier accuracy
+    # Test for normality of accuracy distributions
     print(f'Normal test on SVM Accuracy: {stats.normaltest(svm).pvalue}')
     print(f'Normal test on Tree Accuracy: {stats.normaltest(tree).pvalue}')
     print(f'Normal test on Forest Accuracy: {stats.normaltest(forest).pvalue}')
     print('')
 
+    # Run one-way ANOVA to test if model accuracies differ significantly
     anova = stats.f_oneway(svm, tree, forest)
     print(f'ANOVA p-value: {anova.pvalue}\n')
 
-    # tukey posthoc analysis
+    # Run Tukey's post-hoc test to identify pairwise differences
     df_melt = pd.melt(pd.DataFrame(
         {'svm': svm.to_list(), 
          'tree': tree.to_list(), 
