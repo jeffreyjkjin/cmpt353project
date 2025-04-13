@@ -1,0 +1,4 @@
+Fighter        | Chances of Winning
+---------------+------------------
+Nikita Krylov  | 40.651%
+Dominick Reyes | 59.349%

@@ -1,0 +1,4 @@
+Fighter       | Chances of Winning
+--------------+------------------
+Nora Cornolle | 69.974%
+Hailey Cowan  | 30.026%

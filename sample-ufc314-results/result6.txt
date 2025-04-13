@@ -1,0 +1,4 @@
+Fighter      | Chances of Winning
+-------------+------------------
+Dan Ige      | 98.581%
+Sean Woodson | 1.419%

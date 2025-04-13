@@ -1,0 +1,4 @@
+Fighter       | Chances of Winning
+--------------+------------------
+Darren Elkins | 33.992%
+Julian Erosa  | 66.008%

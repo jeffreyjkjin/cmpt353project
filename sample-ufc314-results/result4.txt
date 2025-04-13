@@ -1,0 +1,4 @@
+Fighter        | Chances of Winning
+---------------+------------------
+Bryce Mitchell | 85.812%
+Jean Silva     | 14.188%

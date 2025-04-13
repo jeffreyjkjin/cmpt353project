@@ -1,0 +1,4 @@
+Fighter               | Chances of Winning
+----------------------+------------------
+Alexander Volkanovski | 63.690%
+Diego Lopes           | 36.310%

@@ -1,0 +1,4 @@
+Fighter             | Chances of Winning
+--------------------+------------------
+Sedriques Dumas     | 95.531%
+Michal Oleksiejczuk | 4.469%
