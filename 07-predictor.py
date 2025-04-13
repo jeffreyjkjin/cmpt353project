@@ -59,7 +59,7 @@ def compute_win_prob(fighter1, fighter2, model):
     fighter_data = fighter_data[columns]
     
     # Predict the class probabilities then return the probability of fighter1 winning
-    return model.predict_proba(fighter_data)[0][0]
+    return model.predict_proba(fighter_data)[0][1]
 
 def main(model_path, fighter_data, matchup):
     # Load the model

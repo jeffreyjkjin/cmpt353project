@@ -126,11 +126,11 @@ def computeDecay(fighter):
 
 # Initializes and updates Glicko2 ratings across all fights
 def computeGlicko(fights, fighters):
-    # Create glicko columns
-    fighters[['rating', 'rd', 'volatility', 'last_fight']] = 0, 0, 0, None
+    # create glicko columns
+    fighters[['rating', 'rd', 'volatility', 'last_fight']] = 0.0, 0.0, 0.0, None
     new_fight_cols = ['red_rating', 'red_rd', 'blue_rating', 'blue_rd', 'exp_red_outcome', 
                       'new_red_rating', 'new_blue_rating']
-    fights[new_fight_cols] = 0
+    fights[new_fight_cols] = 0.0
     
     start_date = pd.to_datetime(fights.iloc[0]['date'])
     end_date = start_date + pd.Timedelta(days=365)
@@ -165,29 +165,25 @@ def computeGlicko(fights, fighters):
 
         # Set default values for fighters if it is their first fight
         if (red_r == 0):
-            red_r, red_rd, red_v = 1500, 350, 0.06
-
+            red_r, red_rd, red_v = 1500.0, 350.0, 0.06
         if (blue_r == 0):
-            blue_r, blue_rd, blue_v = 1500, 350, 0.06
+            blue_r, blue_rd, blue_v = 1500.0, 350.0, 0.06
 
-        # Add glicko rating before fight to compute outcome odds
-        fights.loc[i, ['red_rating', 'red_rd']] = red_r, red_rd
-        fights.loc[i, ['blue_rating', 'blue_rd']] = blue_r, blue_rd
+        # add glicko rating before fight to compute outcome odds
+        fights.loc[i, ['red_rating', 'red_rd']] = float(red_r), float(red_rd)
+        fights.loc[i, ['blue_rating', 'blue_rd']] = float(blue_r), float(blue_rd)
 
-        fights.loc[i, 'exp_red_outcome'] = expectedGlickoOutcome(red_r, red_rd, blue_r, blue_rd)
+        fights.loc[i, 'exp_red_outcome'] = float(expectedGlickoOutcome(red_r, red_rd, blue_r, blue_rd))
 
-        # Compute new glicko ratings
-        fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = updateGlicko(
-            red_r, red_rd, blue_r, blue_rd, red_v, red_result
-        )
+        # compute new glicko ratings
+        fighters.loc[fighters['name'] == red, ['rating', 'rd', 'volatility']] = [
+            float(x) for x in updateGlicko(red_r, red_rd, blue_r, blue_rd, red_v, red_result)]
+        fighters.loc[fighters['name'] == blue, ['rating', 'rd', 'volatility']] = [
+            float(x) for x in updateGlicko(blue_r, blue_rd, red_r, red_rd, blue_v, blue_result)]
 
-        fighters.loc[fighters['name'] == blue, ['rating', 'rd', 'volatility']] = updateGlicko(
-            blue_r, blue_rd, red_r, red_rd, blue_v, blue_result
-        )
-
-        # Add new glicko rating to fight
-        fights.loc[i, 'new_red_rating'] = fighters[fighters['name'] == red]['rating'].iloc[0]
-        fights.loc[i, 'new_blue_rating'] = fighters[fighters['name'] == blue]['rating'].iloc[0]
+        # add new glicko rating to fight
+        fights.loc[i, 'new_red_rating'] = float(fighters[fighters['name'] == red]['rating'].iloc[0])
+        fights.loc[i, 'new_blue_rating'] = float(fighters[fighters['name'] == blue]['rating'].iloc[0])
 
         # Set last fight date
         fighters.loc[fighters['name'] == red, 'last_fight'] = fight['date']
@@ -242,15 +238,29 @@ def calculate_career_stats(fight_data):
     career_stats = pd.concat([red_stats, blue_stats], ignore_index=True)
     career_stats = career_stats.groupby('name').mean().reset_index()   
 
-    return career_stats 
+    return career_stats
+
+# Bayesian smoothing average function to counter low fight counts
+def calculate_smoothed_means(career_stats, fight_counts, smoothing_k=5):
+    smoothed = career_stats.copy()
+    stat_cols = career_columns[1:]
+    
+    global_means = career_stats[stat_cols].mean()
+
+    for col in stat_cols:
+        smoothed[col] = (
+            fight_counts * career_stats[col] + smoothing_k * global_means[col]
+        ) / (fight_counts + smoothing_k)
+    
+    return smoothed
 
 def main(in_dir1, in_dir2, out_dir1, out_dir2):
     fight_data = pd.read_csv(in_dir1)
     fighters = pd.read_csv(in_dir2)
 
-    # Generate fight features
-    fight_data = calculate_totals(fight_data) 
-    fight_data = calculate_percentages(fight_data) 
+    # generate fight features
+    fight_data = calculate_totals(fight_data)
+    fight_data = calculate_percentages(fight_data)
     fight_data = calculate_averages(fight_data)
 
     # Drop unnecessary columns (i.e., r1_red_kd, r3_blue_tot_str_lnd, etc.)
@@ -259,7 +269,15 @@ def main(in_dir1, in_dir2, out_dir1, out_dir2):
     # Update fighter ratings after each fight using Glicko2 algorithm
     fight_data, fighters = computeGlicko(fight_data, fighters)
 
-    career_stats = calculate_career_stats(fight_data) 
+    career_stats = calculate_career_stats(fight_data)
+    
+    fight_counts = fight_data['red'].value_counts().add(
+    fight_data['blue'].value_counts(), fill_value=0
+    )
+    fight_counts = fight_counts.reindex(career_stats['name']).fillna(0).values
+
+    # Apply smoothing to counter low fight counts
+    career_stats = calculate_smoothed_means(career_stats, fight_counts)
 
     # Merge career stats with fighters
     fighters = fighters.merge(career_stats, on='name')
