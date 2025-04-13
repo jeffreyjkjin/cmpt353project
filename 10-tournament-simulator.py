@@ -34,9 +34,9 @@ def generate_round_names(rounds):
         round_names.append("win_tourney")
         round_names.append("finals")
     if rounds >= 3:
-        round_names.append("qf")
-    if rounds >= 4:
         round_names.append("sf")
+    if rounds >= 4:
+        round_names.append("qf")
 
     # Generate dynamic "Reach Round of X" names for tournaments with 5 or more rounds
     for r in range(5, rounds + 1):
